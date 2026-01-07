@@ -1,8 +1,8 @@
 # Feature Specification: Pomodoro Timer
 
-**Feature Branch**: `001-pomodoro-timer`  
-**Created**: 2026-01-02  
-**Status**: Draft  
+**Feature Branch**: `001-pomodoro-timer`
+**Created**: 2026-01-02
+**Status**: Draft
 **Input**: User description: "A pomodoro timer"
 
 ## Overview
@@ -37,9 +37,9 @@ As a user, I want automatic short breaks (5 minutes) after each focus session so
 
 **Acceptance Scenarios**:
 
-1. **Given** a focus session has just completed, **When** I acknowledge the completion, **Then** a 5-minute short break timer is ready to start or starts automatically
+1. **Given** a focus session has just completed, **When** the notification is shown, **Then** a "Start Break" button is displayed and the break timer does NOT start automatically
 2. **Given** a break timer is running, **When** I look at the display, **Then** I can clearly see it's a "Break" session (distinct from focus)
-3. **Given** a break timer completes, **When** the timer reaches zero, **Then** I receive a notification and am prompted to start another focus session
+3. **Given** a break timer completes, **When** the timer reaches zero, **Then** I receive a notification and a "Start Focus" button is displayed (timer does NOT auto-start)
 
 ---
 
@@ -118,7 +118,7 @@ As a user, I want to see how many focus sessions I've completed today so that I 
 - **FR-014**: System MUST persist timer state across application restarts
 - **FR-015**: System MUST track and display the total number of focus sessions completed today
 - **FR-016**: System MUST reset the daily session count at midnight (local time)
-- **FR-017**: Users MUST be able to customize or disable audio notifications
+- **FR-017**: Users MUST be able to enable or disable audio notifications (on/off toggle; additional customization deferred to future version)
 
 ### Key Entities
 

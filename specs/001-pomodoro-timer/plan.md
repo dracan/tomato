@@ -78,7 +78,8 @@ src/
 │   │   ├── SessionType.cs         # Enum for session types
 │   │   ├── SessionStatus.cs       # Enum for session status
 │   │   ├── PomodoroCycle.cs       # Cycle tracking (1-4 sessions)
-│   │   └── DailyStatistics.cs     # Daily aggregate data
+│   │   ├── DailyStatistics.cs     # Daily aggregate data
+│   │   └── AppState.cs            # Root persistence object
 │   ├── Services/
 │   │   ├── ITimerService.cs       # Timer abstraction
 │   │   ├── TimerService.cs        # Core timer logic

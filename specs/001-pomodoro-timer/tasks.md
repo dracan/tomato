@@ -1,6 +1,6 @@
 # Tasks: Pomodoro Timer
 
-**Input**: Design documents from `/specs/001-pomodoro-timer/`  
+**Input**: Design documents from `/specs/001-pomodoro-timer/`
 **Prerequisites**: plan.md ✓, spec.md ✓, research.md ✓, data-model.md ✓, contracts/ ✓
 
 **Tests**: Included per Constitution Principle IV (Test-Driven Development)
@@ -97,6 +97,8 @@
 - [ ] T038 [US1] Update MainWindow.xaml to host TimerView with Start button in src/Tomato/MainWindow.xaml
 - [ ] T039 [US1] Wire up dependency injection in App.xaml.cs (services → viewmodels → views)
 - [ ] T040 [US1] Handle timer completion: play notification and update session status
+- [ ] T040a [US1] Persist session state on start, pause, and completion via IPersistenceService
+- [ ] T040b [US1] Load persisted state on app startup; restore in-progress session if present
 
 **Checkpoint**: App launches, Start button begins 25-minute countdown, notification plays at completion. US1 tests pass.
 
@@ -104,9 +106,9 @@
 
 ## Phase 4: User Story 2 - Take Breaks Between Sessions (Priority: P2)
 
-**Goal**: After focus session completes, user can start a 5-minute short break with distinct visual
+**Goal**: After focus session completes, user can explicitly start a 5-minute short break with distinct visual
 
-**Independent Test**: Complete focus session → Click "Start Break" → 5-min break countdown → Visual shows "Break"
+**Independent Test**: Complete focus session → See "Start Break" button → Click it → 5-min break countdown → Visual shows "Break"
 
 ### Tests for User Story 2 (TDD)
 
@@ -119,7 +121,7 @@
 - [ ] T044 [US2] Add StartBreakCommand to TimerViewModel in src/Tomato/ViewModels/TimerViewModel.cs
 - [ ] T045 [US2] Update TimerView.xaml to show session type with color coding (Focus=Red, Break=Green) in src/Tomato/Views/TimerView.xaml
 - [ ] T046 [US2] Add "Start Break" button that appears after focus completion in src/Tomato/Views/TimerView.xaml
-- [ ] T047 [US2] After break completes, prompt to start next focus session
+- [ ] T047 [US2] After break completes, show "Start Focus" button (no auto-start)
 
 **Checkpoint**: Focus → Break → Focus flow works. Session types are visually distinct. US2 tests pass.
 
@@ -192,9 +194,8 @@
 - [ ] T069 [US5] Add midnight reset check using IDateTimeProvider in src/Tomato/Services/SessionManager.cs
 - [ ] T070 [US5] Add CompletedSessionsToday property to TimerViewModel in src/Tomato/ViewModels/TimerViewModel.cs
 - [ ] T071 [US5] Display session count in TimerView.xaml (e.g., "🍅 3 sessions today") in src/Tomato/Views/TimerView.xaml
-- [ ] T072 [US5] Persist AppState on session completion via IPersistenceService in src/Tomato/Services/SessionManager.cs
-- [ ] T073 [US5] Load persisted state on app startup in App.xaml.cs
-- [ ] T074 [US5] Handle app restart mid-session: restore timer state or show completion
+- [ ] T072 [US5] Extend persistence to include DailyStatistics (builds on T040a from US1)
+- [ ] T073 [US5] Handle mid-session app restart: if timer was running, calculate elapsed time and resume or show completion
 
 **Checkpoint**: Session count displays and persists. Midnight reset works. App restart recovers state. US5 tests pass.
 
@@ -210,6 +211,7 @@
 - [ ] T078 [P] Add window always-on-top option for timer visibility
 - [ ] T079 Handle edge case: rapid button clicks with command debouncing in src/Tomato/ViewModels/TimerViewModel.cs
 - [ ] T080 Add error handling for audio playback failures (graceful fallback) in src/Tomato/Services/NotificationService.cs
+- [ ] T080a Test timer accuracy when app is minimized or system sleeps (edge case validation)
 - [ ] T081 [P] Create app icon and add to src/Tomato/Resources/
 - [ ] T082 Run quickstart.md validation: verify all setup commands work
 - [ ] T083 Final integration test: complete full Pomodoro cycle (4 focus + 3 short breaks + 1 long break)
@@ -333,12 +335,12 @@ All start after Phase 2 is complete.
 |-------|------------|------------------------|
 | Setup | 8 | T003-T007 parallel |
 | Foundational | 20 | T009-T013, T015-T019, T025-T026 parallel |
-| US1 (MVP) | 12 | T029-T031, T034 parallel |
+| US1 (MVP) | 14 | T029-T031, T034 parallel |
 | US2 | 7 | T041-T042 parallel |
 | US3 | 9 | T048-T050 parallel |
 | US4 | 8 | T057-T059 parallel |
-| US5 | 10 | T065-T067 parallel |
-| Polish | 9 | T075, T077, T078, T081 parallel |
+| US5 | 9 | T065-T067 parallel |
+| Polish | 10 | T075, T077, T078, T081 parallel |
 
-**Total Tasks**: 83  
-**MVP Tasks (US1 only)**: 40 (Setup + Foundational + US1)
+**Total Tasks**: 85
+**MVP Tasks (US1 only)**: 42 (Setup + Foundational + US1)
