@@ -1,0 +1,116 @@
+<UserControl x:Class="Tomato.Views.TimerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Tomato.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:TimerViewModel}"
+             d:DesignHeight="500" d:DesignWidth="400">
+
+    <Grid Background="{StaticResource BackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Session Label -->
+        <TextBlock Grid.Row="0"
+                   Text="{Binding SessionLabel}"
+                   Style="{StaticResource SessionLabelStyle}"
+                   Foreground="{Binding CurrentSessionType, Converter={StaticResource SessionTypeToColorConverter}}"
+                   Margin="0,40,0,20"/>
+
+        <!-- Timer Display -->
+        <Viewbox Grid.Row="1"
+                 Stretch="Uniform"
+                 MaxHeight="150"
+                 Margin="40">
+            <TextBlock Text="{Binding TimeRemaining, Converter={StaticResource TimeSpanToStringConverter}}"
+                       Style="{StaticResource TimerDisplayStyle}"
+                       Foreground="{Binding CurrentSessionType, Converter={StaticResource SessionTypeToColorConverter}}"/>
+        </Viewbox>
+
+        <!-- Control Buttons -->
+        <StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    Margin="0,20">
+
+            <!-- Start Focus Button - Visible when idle (not running, not paused, not complete) -->
+            <Button Content="Start Focus"
+                    Command="{Binding StartFocusCommand}"
+                    Style="{StaticResource PrimaryButtonStyle}">
+                <Button.Visibility>
+                    <MultiBinding Converter="{StaticResource StartButtonVisibilityConverter}">
+                        <Binding Path="IsRunning"/>
+                        <Binding Path="IsPaused"/>
+                        <Binding Path="IsSessionComplete"/>
+                    </MultiBinding>
+                </Button.Visibility>
+            </Button>
+
+            <!-- Start Break Button - Visible when session complete -->
+            <Button Content="Start Break"
+                    Command="{Binding StartBreakCommand}"
+                    Style="{StaticResource BreakButtonStyle}"
+                    Visibility="{Binding IsSessionComplete, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+            <!-- Pause Button - Visible when running -->
+            <Button Content="Pause"
+                    Command="{Binding PauseCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Visibility="{Binding IsRunning, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+            <!-- Resume Button - Visible when paused -->
+            <Button Content="Resume"
+                    Command="{Binding ResumeCommand}"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Visibility="{Binding IsPaused, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+            <!-- Cancel Button - Visible when running or paused -->
+            <Button Content="Cancel"
+                    Command="{Binding CancelCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}">
+                <Button.Visibility>
+                    <MultiBinding Converter="{StaticResource OrBooleanToVisibilityConverter}">
+                        <Binding Path="IsRunning"/>
+                        <Binding Path="IsPaused"/>
+                    </MultiBinding>
+                </Button.Visibility>
+            </Button>
+        </StackPanel>
+
+        <!-- Statistics Panel -->
+        <Border Grid.Row="3"
+                Background="{StaticResource SurfaceBrush}"
+                CornerRadius="8"
+                Margin="20"
+                Padding="20">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" HorizontalAlignment="Center">
+                    <TextBlock Text="Today's Sessions"
+                               Style="{StaticResource StatisticsLabelStyle}"/>
+                    <TextBlock Text="{Binding CompletedSessionsToday}"
+                               Style="{StaticResource StatisticsValueStyle}"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" HorizontalAlignment="Center">
+                    <TextBlock Text="Current Cycle"
+                               Style="{StaticResource StatisticsLabelStyle}"/>
+                    <TextBlock Text="{Binding CycleProgress}"
+                               Style="{StaticResource StatisticsValueStyle}"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

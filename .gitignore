@@ -1,0 +1,99 @@
+# .NET Core
+bin/
+obj/
+*.user
+*.userosscache
+*.suo
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio
+.vs/
+*.rsuser
+*.csproj.user
+*.sln.docstates
+*.userprefs
+*.DotSettings.user
+
+# NuGet
+*.nupkg
+**/packages/*
+!**/packages/build/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Test Results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.VisualState.xml
+TestResult.xml
+nunit-*.xml
+*.trx
+*.coverage
+*.coveragexml
+
+# NCrunch
+_NCrunch_*
+.*crunch*.local.xml
+nCrunchTemp_*
+
+# Rider
+.idea/
+*.sln.iml
+
+# Resharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+
+# TeamCity
+*.TeamCity.IntelliSense.Generated.cs
+
+# DotCover
+*.dotCover
+
+# Environment files
+.env
+.env.*
+*.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+
+# Local application data
+state.json
+
+# Publish output
+publish/
+PublishProfiles/
+
+# Windows Forms Designer
+*.Designer.cs
+
+# Generated code
+*.generated.cs
+*.g.cs
+*.g.i.cs
+
+# Backup files
+*.bak
+*~
+
+# Logs
+*.log
+logs/

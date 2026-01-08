@@ -19,14 +19,14 @@
 
 **Purpose**: Create .NET solution structure and install dependencies
 
-- [ ] T001 Create solution and project structure: `dotnet new sln -n Tomato -o src`, `dotnet new wpf -n Tomato -o src/Tomato`, `dotnet new xunit -n Tomato.Tests -o src/Tomato.Tests`
-- [ ] T002 Add projects to solution and create project reference from Tomato.Tests to Tomato
-- [ ] T003 [P] Install CommunityToolkit.Mvvm package in src/Tomato/Tomato.csproj
-- [ ] T004 [P] Install NAudio package in src/Tomato/Tomato.csproj
-- [ ] T005 [P] Install xUnit, FluentAssertions, NSubstitute packages in src/Tomato.Tests/Tomato.Tests.csproj
-- [ ] T006 [P] Create folder structure: Models/, Services/, ViewModels/, Views/, Converters/, Resources/ in src/Tomato/
-- [ ] T007 [P] Create folder structure: Unit/, Integration/ in src/Tomato.Tests/
-- [ ] T008 Configure Tomato.csproj for .NET 8.0-windows with nullable enabled and ImplicitUsings
+- [X] T001 Create solution and project structure: `dotnet new sln -n Tomato -o src`, `dotnet new wpf -n Tomato -o src/Tomato`, `dotnet new xunit -n Tomato.Tests -o src/Tomato.Tests`
+- [X] T002 Add projects to solution and create project reference from Tomato.Tests to Tomato
+- [X] T003 [P] Install CommunityToolkit.Mvvm package in src/Tomato/Tomato.csproj
+- [X] T004 [P] Install NAudio package in src/Tomato/Tomato.csproj
+- [X] T005 [P] Install xUnit, FluentAssertions, NSubstitute packages in src/Tomato.Tests/Tomato.Tests.csproj
+- [X] T006 [P] Create folder structure: Models/, Services/, ViewModels/, Views/, Converters/, Resources/ in src/Tomato/
+- [X] T007 [P] Create folder structure: Unit/, Integration/ in src/Tomato.Tests/
+- [X] T008 Configure Tomato.csproj for .NET 8.0-windows with nullable enabled and ImplicitUsings
 
 **Checkpoint**: Solution builds successfully with `dotnet build src/Tomato.sln`
 
@@ -40,35 +40,35 @@
 
 ### Models (No Dependencies)
 
-- [ ] T009 [P] Create SessionType enum in src/Tomato/Models/SessionType.cs
-- [ ] T010 [P] Create SessionStatus enum in src/Tomato/Models/SessionStatus.cs
-- [ ] T011 [P] Create Session class with factory methods in src/Tomato/Models/Session.cs
-- [ ] T012 [P] Create PomodoroCycle class in src/Tomato/Models/PomodoroCycle.cs
-- [ ] T013 [P] Create DailyStatistics class in src/Tomato/Models/DailyStatistics.cs
-- [ ] T014 Create AppState class in src/Tomato/Models/AppState.cs
+- [X] T009 [P] Create SessionType enum in src/Tomato/Models/SessionType.cs
+- [X] T010 [P] Create SessionStatus enum in src/Tomato/Models/SessionStatus.cs
+- [X] T011 [P] Create Session class with factory methods in src/Tomato/Models/Session.cs
+- [X] T012 [P] Create PomodoroCycle class in src/Tomato/Models/PomodoroCycle.cs
+- [X] T013 [P] Create DailyStatistics class in src/Tomato/Models/DailyStatistics.cs
+- [X] T014 Create AppState class in src/Tomato/Models/AppState.cs
 
 ### Service Interfaces
 
-- [ ] T015 [P] Create IDateTimeProvider interface in src/Tomato/Services/IDateTimeProvider.cs
-- [ ] T016 [P] Create ITimerService interface with TimerTickEventArgs in src/Tomato/Services/ITimerService.cs
-- [ ] T017 [P] Create ISessionManager interface with SessionStateChangedEventArgs in src/Tomato/Services/ISessionManager.cs
-- [ ] T018 [P] Create INotificationService interface in src/Tomato/Services/INotificationService.cs
-- [ ] T019 [P] Create IPersistenceService interface in src/Tomato/Services/IPersistenceService.cs
+- [X] T015 [P] Create IDateTimeProvider interface in src/Tomato/Services/IDateTimeProvider.cs
+- [X] T016 [P] Create ITimerService interface with TimerTickEventArgs in src/Tomato/Services/ITimerService.cs
+- [X] T017 [P] Create ISessionManager interface with SessionStateChangedEventArgs in src/Tomato/Services/ISessionManager.cs
+- [X] T018 [P] Create INotificationService interface in src/Tomato/Services/INotificationService.cs
+- [X] T019 [P] Create IPersistenceService interface in src/Tomato/Services/IPersistenceService.cs
 
 ### Core Service Implementations
 
-- [ ] T020 Create DateTimeProvider implementation in src/Tomato/Services/DateTimeProvider.cs
-- [ ] T021 Write unit tests for TimerService in src/Tomato.Tests/Unit/TimerServiceTests.cs (TDD: tests first, expect failures)
-- [ ] T022 Implement TimerService with System.Timers.Timer + Stopwatch in src/Tomato/Services/TimerService.cs
-- [ ] T023 Write unit tests for PersistenceService in src/Tomato.Tests/Unit/PersistenceServiceTests.cs (TDD: tests first)
-- [ ] T024 Implement PersistenceService with System.Text.Json in src/Tomato/Services/PersistenceService.cs
+- [X] T020 Create DateTimeProvider implementation in src/Tomato/Services/DateTimeProvider.cs
+- [X] T021 Write unit tests for TimerService in src/Tomato.Tests/Unit/TimerServiceTests.cs (TDD: tests first, expect failures)
+- [X] T022 Implement TimerService with System.Timers.Timer + Stopwatch in src/Tomato/Services/TimerService.cs
+- [X] T023 Write unit tests for PersistenceService in src/Tomato.Tests/Unit/PersistenceServiceTests.cs (TDD: tests first)
+- [X] T024 Implement PersistenceService with System.Text.Json in src/Tomato/Services/PersistenceService.cs
 
 ### WPF Infrastructure
 
-- [ ] T025 [P] Create TimeSpanToStringConverter in src/Tomato/Converters/TimeSpanToStringConverter.cs
-- [ ] T026 [P] Create SessionTypeToColorConverter in src/Tomato/Converters/SessionTypeToColorConverter.cs
-- [ ] T027 Create Styles.xaml with base application styles in src/Tomato/Resources/Styles.xaml
-- [ ] T028 Update App.xaml to reference Styles.xaml and register converters
+- [X] T025 [P] Create TimeSpanToStringConverter in src/Tomato/Converters/TimeSpanToStringConverter.cs
+- [X] T026 [P] Create SessionTypeToColorConverter in src/Tomato/Converters/SessionTypeToColorConverter.cs
+- [X] T027 Create Styles.xaml with base application styles in src/Tomato/Resources/Styles.xaml
+- [X] T028 Update App.xaml to reference Styles.xaml and register converters
 
 **Checkpoint**: All models, interfaces, and core services compile. TimerService and PersistenceService tests pass.
 
@@ -82,23 +82,23 @@
 
 ### Tests for User Story 1 (TDD)
 
-- [ ] T029 [P] [US1] Write SessionManager tests for StartFocusSession in src/Tomato.Tests/Unit/SessionManagerTests.cs
-- [ ] T030 [P] [US1] Write TimerViewModel tests for start command and display updates in src/Tomato.Tests/Unit/TimerViewModelTests.cs
-- [ ] T031 [P] [US1] Write integration test for focus session flow in src/Tomato.Tests/Integration/SessionFlowTests.cs
+- [X] T029 [P] [US1] Write SessionManager tests for StartFocusSession in src/Tomato.Tests/Unit/SessionManagerTests.cs
+- [X] T030 [P] [US1] Write TimerViewModel tests for start command and display updates in src/Tomato.Tests/Unit/TimerViewModelTests.cs
+- [X] T031 [P] [US1] Write integration test for focus session flow in src/Tomato.Tests/Integration/SessionFlowTests.cs
 
 ### Implementation for User Story 1
 
-- [ ] T032 [US1] Implement SessionManager.StartFocusSession() and CompleteSession() in src/Tomato/Services/SessionManager.cs
-- [ ] T033 [US1] Create NotificationService with NAudio playback in src/Tomato/Services/NotificationService.cs
-- [ ] T034 [P] [US1] Add notification.wav sound file to src/Tomato/Resources/Sounds/notification.wav
-- [ ] T035 [US1] Create TimerViewModel with StartFocusCommand and timer display properties in src/Tomato/ViewModels/TimerViewModel.cs
-- [ ] T036 [US1] Create MainViewModel to host TimerViewModel in src/Tomato/ViewModels/MainViewModel.cs
-- [ ] T037 [US1] Create TimerView.xaml with timer display (remaining time, session type) in src/Tomato/Views/TimerView.xaml
-- [ ] T038 [US1] Update MainWindow.xaml to host TimerView with Start button in src/Tomato/MainWindow.xaml
-- [ ] T039 [US1] Wire up dependency injection in App.xaml.cs (services → viewmodels → views)
-- [ ] T040 [US1] Handle timer completion: play notification and update session status
-- [ ] T040a [US1] Persist session state on start, pause, and completion via IPersistenceService
-- [ ] T040b [US1] Load persisted state on app startup; restore in-progress session if present
+- [X] T032 [US1] Implement SessionManager.StartFocusSession() and CompleteSession() in src/Tomato/Services/SessionManager.cs
+- [X] T033 [US1] Create NotificationService with NAudio playback in src/Tomato/Services/NotificationService.cs
+- [X] T034 [P] [US1] Add notification.wav sound file to src/Tomato/Resources/Sounds/notification.wav
+- [X] T035 [US1] Create TimerViewModel with StartFocusCommand and timer display properties in src/Tomato/ViewModels/TimerViewModel.cs
+- [X] T036 [US1] Create MainViewModel to host TimerViewModel in src/Tomato/ViewModels/MainViewModel.cs
+- [X] T037 [US1] Create TimerView.xaml with timer display (remaining time, session type) in src/Tomato/Views/TimerView.xaml
+- [X] T038 [US1] Update MainWindow.xaml to host TimerView with Start button in src/Tomato/MainWindow.xaml
+- [X] T039 [US1] Wire up dependency injection in App.xaml.cs (services → viewmodels → views)
+- [X] T040 [US1] Handle timer completion: play notification and update session status
+- [X] T040a [US1] Persist session state on start, pause, and completion via IPersistenceService
+- [X] T040b [US1] Load persisted state on app startup; restore in-progress session if present
 
 **Checkpoint**: App launches, Start button begins 25-minute countdown, notification plays at completion. US1 tests pass.
 
@@ -112,16 +112,16 @@
 
 ### Tests for User Story 2 (TDD)
 
-- [ ] T041 [P] [US2] Write SessionManager tests for StartBreakSession in src/Tomato.Tests/Unit/SessionManagerTests.cs
-- [ ] T042 [P] [US2] Write TimerViewModel tests for break session display in src/Tomato.Tests/Unit/TimerViewModelTests.cs
+- [X] T041 [P] [US2] Write SessionManager tests for StartBreakSession in src/Tomato.Tests/Unit/SessionManagerTests.cs
+- [X] T042 [P] [US2] Write TimerViewModel tests for break session display in src/Tomato.Tests/Unit/TimerViewModelTests.cs
 
 ### Implementation for User Story 2
 
-- [ ] T043 [US2] Implement SessionManager.StartBreakSession() in src/Tomato/Services/SessionManager.cs
-- [ ] T044 [US2] Add StartBreakCommand to TimerViewModel in src/Tomato/ViewModels/TimerViewModel.cs
-- [ ] T045 [US2] Update TimerView.xaml to show session type with color coding (Focus=Red, Break=Green) in src/Tomato/Views/TimerView.xaml
-- [ ] T046 [US2] Add "Start Break" button that appears after focus completion in src/Tomato/Views/TimerView.xaml
-- [ ] T047 [US2] After break completes, show "Start Focus" button (no auto-start)
+- [X] T043 [US2] Implement SessionManager.StartBreakSession() in src/Tomato/Services/SessionManager.cs
+- [X] T044 [US2] Add StartBreakCommand to TimerViewModel in src/Tomato/ViewModels/TimerViewModel.cs
+- [X] T045 [US2] Update TimerView.xaml to show session type with color coding (Focus=Red, Break=Green) in src/Tomato/Views/TimerView.xaml
+- [X] T046 [US2] Add "Start Break" button that appears after focus completion in src/Tomato/Views/TimerView.xaml
+- [X] T047 [US2] After break completes, show "Start Focus" button (no auto-start)
 
 **Checkpoint**: Focus → Break → Focus flow works. Session types are visually distinct. US2 tests pass.
 
@@ -135,18 +135,18 @@
 
 ### Tests for User Story 3 (TDD)
 
-- [ ] T048 [P] [US3] Write SessionManager tests for PauseSession/ResumeSession in src/Tomato.Tests/Unit/SessionManagerTests.cs
-- [ ] T049 [P] [US3] Write TimerService tests for Pause/Resume accuracy in src/Tomato.Tests/Unit/TimerServiceTests.cs
-- [ ] T050 [P] [US3] Write TimerViewModel tests for pause/resume commands in src/Tomato.Tests/Unit/TimerViewModelTests.cs
+- [X] T048 [P] [US3] Write SessionManager tests for PauseSession/ResumeSession in src/Tomato.Tests/Unit/SessionManagerTests.cs
+- [X] T049 [P] [US3] Write TimerService tests for Pause/Resume accuracy in src/Tomato.Tests/Unit/TimerServiceTests.cs
+- [X] T050 [P] [US3] Write TimerViewModel tests for pause/resume commands in src/Tomato.Tests/Unit/TimerViewModelTests.cs
 
 ### Implementation for User Story 3
 
-- [ ] T051 [US3] Implement SessionManager.PauseSession() and ResumeSession() in src/Tomato/Services/SessionManager.cs
-- [ ] T052 [US3] Add PauseCommand and ResumeCommand to TimerViewModel in src/Tomato/ViewModels/TimerViewModel.cs
-- [ ] T053 [US3] Update TimerView.xaml with Pause/Resume buttons (show based on state) in src/Tomato/Views/TimerView.xaml
-- [ ] T054 [US3] Add visual indicator for paused state (e.g., pulsing or grayed timer) in src/Tomato/Views/TimerView.xaml
-- [ ] T055 [US3] Implement SessionManager.CancelSession() for Stop button in src/Tomato/Services/SessionManager.cs
-- [ ] T056 [US3] Add StopCommand to TimerViewModel in src/Tomato/ViewModels/TimerViewModel.cs
+- [X] T051 [US3] Implement SessionManager.PauseSession() and ResumeSession() in src/Tomato/Services/SessionManager.cs
+- [X] T052 [US3] Add PauseCommand and ResumeCommand to TimerViewModel in src/Tomato/ViewModels/TimerViewModel.cs
+- [X] T053 [US3] Update TimerView.xaml with Pause/Resume buttons (show based on state) in src/Tomato/Views/TimerView.xaml
+- [X] T054 [US3] Add visual indicator for paused state (e.g., pulsing or grayed timer) in src/Tomato/Views/TimerView.xaml
+- [X] T055 [US3] Implement SessionManager.CancelSession() for Stop button in src/Tomato/Services/SessionManager.cs
+- [X] T056 [US3] Add StopCommand to TimerViewModel in src/Tomato/ViewModels/TimerViewModel.cs
 
 **Checkpoint**: Pause/Resume works correctly. Remaining time preserved. Paused state is visually clear. US3 tests pass.
 
@@ -160,17 +160,17 @@
 
 ### Tests for User Story 4 (TDD)
 
-- [ ] T057 [P] [US4] Write PomodoroCycle tests for cycle tracking in src/Tomato.Tests/Unit/PomodoroCycleTests.cs
-- [ ] T058 [P] [US4] Write SessionManager tests for GetNextBreakType logic in src/Tomato.Tests/Unit/SessionManagerTests.cs
-- [ ] T059 [P] [US4] Write integration test for full 4-session cycle in src/Tomato.Tests/Integration/SessionFlowTests.cs
+- [X] T057 [P] [US4] Write PomodoroCycle tests for cycle tracking in src/Tomato.Tests/Unit/PomodoroCycleTests.cs
+- [X] T058 [P] [US4] Write SessionManager tests for GetNextBreakType logic in src/Tomato.Tests/Unit/SessionManagerTests.cs
+- [X] T059 [P] [US4] Write integration test for full 4-session cycle in src/Tomato.Tests/Integration/SessionFlowTests.cs
 
 ### Implementation for User Story 4
 
-- [ ] T060 [US4] Implement PomodoroCycle tracking in SessionManager in src/Tomato/Services/SessionManager.cs
-- [ ] T061 [US4] Implement GetNextBreakType() returning ShortBreak or LongBreak in src/Tomato/Services/SessionManager.cs
-- [ ] T062 [US4] Update TimerViewModel to show correct break type after focus completion in src/Tomato/ViewModels/TimerViewModel.cs
-- [ ] T063 [US4] Add cycle position indicator to UI (e.g., "Session 2 of 4") in src/Tomato/Views/TimerView.xaml
-- [ ] T064 [US4] Reset cycle after long break completes in src/Tomato/Services/SessionManager.cs
+- [X] T060 [US4] Implement PomodoroCycle tracking in SessionManager in src/Tomato/Services/SessionManager.cs
+- [X] T061 [US4] Implement GetNextBreakType() returning ShortBreak or LongBreak in src/Tomato/Services/SessionManager.cs
+- [X] T062 [US4] Update TimerViewModel to show correct break type after focus completion in src/Tomato/ViewModels/TimerViewModel.cs
+- [X] T063 [US4] Add cycle position indicator to UI (e.g., "Session 2 of 4") in src/Tomato/Views/TimerView.xaml
+- [X] T064 [US4] Reset cycle after long break completes in src/Tomato/Services/SessionManager.cs
 
 **Checkpoint**: 4 focus sessions trigger long break. Cycle resets after long break. US4 tests pass.
 
@@ -184,18 +184,18 @@
 
 ### Tests for User Story 5 (TDD)
 
-- [ ] T065 [P] [US5] Write DailyStatistics tests for increment and reset in src/Tomato.Tests/Unit/DailyStatisticsTests.cs
-- [ ] T066 [P] [US5] Write SessionManager tests for daily stats update in src/Tomato.Tests/Unit/SessionManagerTests.cs
-- [ ] T067 [P] [US5] Write persistence tests for state recovery in src/Tomato.Tests/Integration/PersistenceTests.cs
+- [X] T065 [P] [US5] Write DailyStatistics tests for increment and reset in src/Tomato.Tests/Unit/DailyStatisticsTests.cs
+- [X] T066 [P] [US5] Write SessionManager tests for daily stats update in src/Tomato.Tests/Unit/SessionManagerTests.cs
+- [X] T067 [P] [US5] Write persistence tests for state recovery in src/Tomato.Tests/Integration/PersistenceTests.cs
 
 ### Implementation for User Story 5
 
-- [ ] T068 [US5] Implement DailyStatistics tracking in SessionManager in src/Tomato/Services/SessionManager.cs
-- [ ] T069 [US5] Add midnight reset check using IDateTimeProvider in src/Tomato/Services/SessionManager.cs
-- [ ] T070 [US5] Add CompletedSessionsToday property to TimerViewModel in src/Tomato/ViewModels/TimerViewModel.cs
-- [ ] T071 [US5] Display session count in TimerView.xaml (e.g., "🍅 3 sessions today") in src/Tomato/Views/TimerView.xaml
-- [ ] T072 [US5] Extend persistence to include DailyStatistics (builds on T040a from US1)
-- [ ] T073 [US5] Handle mid-session app restart: if timer was running, calculate elapsed time and resume or show completion
+- [X] T068 [US5] Implement DailyStatistics tracking in SessionManager in src/Tomato/Services/SessionManager.cs
+- [X] T069 [US5] Add midnight reset check using IDateTimeProvider in src/Tomato/Services/SessionManager.cs
+- [X] T070 [US5] Add CompletedSessionsToday property to TimerViewModel in src/Tomato/ViewModels/TimerViewModel.cs
+- [X] T071 [US5] Display session count in TimerView.xaml (e.g., "🍅 3 sessions today") in src/Tomato/Views/TimerView.xaml
+- [X] T072 [US5] Extend persistence to include DailyStatistics (builds on T040a from US1)
+- [X] T073 [US5] Handle mid-session app restart: if timer was running, calculate elapsed time and resume or show completion
 
 **Checkpoint**: Session count displays and persists. Midnight reset works. App restart recovers state. US5 tests pass.
 
@@ -205,16 +205,16 @@
 
 **Purpose**: Improvements that span multiple user stories
 
-- [ ] T075 [P] Add toggle for sound notifications (FR-017) in src/Tomato/Views/TimerView.xaml
-- [ ] T076 Implement sound toggle in NotificationService and persist preference in src/Tomato/Services/NotificationService.cs
-- [ ] T077 [P] Add accessibility: keyboard shortcuts (Space=Start/Pause, Esc=Stop) in src/Tomato/MainWindow.xaml.cs
+- [X] T075 [P] Add toggle for sound notifications (FR-017) in src/Tomato/Views/TimerView.xaml
+- [X] T076 Implement sound toggle in NotificationService and persist preference in src/Tomato/Services/NotificationService.cs
+- [X] T077 [P] Add accessibility: keyboard shortcuts (Space=Start/Pause, Esc=Stop) in src/Tomato/MainWindow.xaml.cs
 - [ ] T078 [P] Add window always-on-top option for timer visibility
-- [ ] T079 Handle edge case: rapid button clicks with command debouncing in src/Tomato/ViewModels/TimerViewModel.cs
-- [ ] T080 Add error handling for audio playback failures (graceful fallback) in src/Tomato/Services/NotificationService.cs
+- [X] T079 Handle edge case: rapid button clicks with command debouncing in src/Tomato/ViewModels/TimerViewModel.cs
+- [X] T080 Add error handling for audio playback failures (graceful fallback) in src/Tomato/Services/NotificationService.cs
 - [ ] T080a Test timer accuracy when app is minimized or system sleeps (edge case validation)
 - [ ] T081 [P] Create app icon and add to src/Tomato/Resources/
-- [ ] T082 Run quickstart.md validation: verify all setup commands work
-- [ ] T083 Final integration test: complete full Pomodoro cycle (4 focus + 3 short breaks + 1 long break)
+- [X] T082 Run quickstart.md validation: verify all setup commands work
+- [X] T083 Final integration test: complete full Pomodoro cycle (4 focus + 3 short breaks + 1 long break)
 
 ---
 
