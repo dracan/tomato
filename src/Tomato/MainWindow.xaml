@@ -1,0 +1,21 @@
+﻿<Window x:Class="Tomato.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views="clr-namespace:Tomato.Views"
+        xmlns:vm="clr-namespace:Tomato.ViewModels"
+        mc:Ignorable="d"
+        Title="Tomato - Pomodoro Timer"
+        Height="550"
+        Width="420"
+        MinHeight="450"
+        MinWidth="350"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BackgroundBrush}"
+        d:DataContext="{d:DesignInstance Type=vm:MainViewModel}">
+
+    <Grid>
+        <views:TimerView DataContext="{Binding TimerViewModel}"/>
+    </Grid>
+</Window>

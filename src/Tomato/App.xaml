@@ -1,0 +1,20 @@
+﻿<Application x:Class="Tomato.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Tomato"
+             xmlns:converters="clr-namespace:Tomato.Converters">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources/Styles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Converters -->
+            <converters:TimeSpanToStringConverter x:Key="TimeSpanToStringConverter"/>
+            <converters:SessionTypeToColorConverter x:Key="SessionTypeToColorConverter"/>
+            <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+            <converters:StartButtonVisibilityConverter x:Key="StartButtonVisibilityConverter"/>
+            <converters:OrBooleanToVisibilityConverter x:Key="OrBooleanToVisibilityConverter"/>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
