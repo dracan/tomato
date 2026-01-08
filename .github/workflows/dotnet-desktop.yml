@@ -1,0 +1,33 @@
+name: .NET Core Desktop
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install .NET Core
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore Tomato.sln
+
+    - name: Build
+      run: dotnet build Tomato.sln --configuration ${{ matrix.configuration }} --no-restore
+
+    - name: Test
+      run: dotnet test Tomato.sln --configuration ${{ matrix.configuration }} --no-build --verbosity normal
