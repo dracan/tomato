@@ -1,5 +1,8 @@
-﻿using System.Windows;
+﻿using System;
+using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
+using Tomato.Helpers;
 using Tomato.ViewModels;
 
 namespace Tomato;
@@ -13,6 +16,14 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         KeyDown += MainWindow_KeyDown;
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+
+        var hwnd = new WindowInteropHelper(this).Handle;
+        DwmHelper.SetDarkTitleBar(hwnd, enable: true);
     }
 
     private void MainWindow_KeyDown(object sender, KeyEventArgs e)
