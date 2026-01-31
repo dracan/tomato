@@ -61,3 +61,4 @@ dotnet test Tomato.Tests --filter "FullyQualifiedName~SessionManagerTests.StartS
 - **Reliability & Accuracy**: Timer accuracy must be maintained; session data must persist across restarts
 - **Conventional Commits**: Use format `feat:`, `fix:`, `docs:`, `refactor:`, `test:`
 - **Feature Branches**: Follow format `###-feature-name`
+- **Keep README Updated**: When adding or changing features, update README.md to reflect the changes
