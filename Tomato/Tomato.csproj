@@ -14,6 +14,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Include="Resources\Sounds\*.wav">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageReference Include="NAudio" Version="2.2.1" />
   </ItemGroup>
