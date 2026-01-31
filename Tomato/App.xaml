@@ -14,7 +14,8 @@
             <converters:SessionTypeToColorConverter x:Key="SessionTypeToColorConverter"/>
             <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
             <converters:StartButtonVisibilityConverter x:Key="StartButtonVisibilityConverter"/>
-            <converters:OrBooleanToVisibilityConverter x:Key="OrBooleanToVisibilityConverter"/>
+            <converters:PauseButtonVisibilityConverter x:Key="PauseButtonVisibilityConverter"/>
+            <converters:StopButtonVisibilityConverter x:Key="StopButtonVisibilityConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

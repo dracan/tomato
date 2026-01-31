@@ -26,6 +26,11 @@ public class SessionTypeToColorConverter : IValueConverter
     public SolidColorBrush LongBreakColor { get; set; } = new(Color.FromRgb(0, 123, 255));
 
     /// <summary>
+    /// Color for idle state (dark gray).
+    /// </summary>
+    public SolidColorBrush IdleColor { get; set; } = new(Color.FromRgb(74, 74, 74));
+
+    /// <summary>
     /// Default color when no session is active.
     /// </summary>
     public SolidColorBrush DefaultColor { get; set; } = new(Color.FromRgb(108, 117, 125));

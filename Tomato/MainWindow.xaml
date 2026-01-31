@@ -6,14 +6,16 @@
         xmlns:views="clr-namespace:Tomato.Views"
         xmlns:vm="clr-namespace:Tomato.ViewModels"
         mc:Ignorable="d"
-        Title="Tomato - Pomodoro Timer"
+        Title="Tomato"
         Icon="/Resources/tomato.ico"
-        Height="550"
-        Width="420"
-        MinHeight="450"
-        MinWidth="350"
-        WindowStartupLocation="CenterScreen"
-        Background="{StaticResource BackgroundBrush}"
+        Height="80"
+        Width="150"
+        Topmost="True"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ResizeMode="NoResize"
+        ShowInTaskbar="True"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel}">
 
     <Grid>
