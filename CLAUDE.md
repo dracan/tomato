@@ -62,3 +62,4 @@ dotnet test Tomato.Tests --filter "FullyQualifiedName~SessionManagerTests.StartS
 - **Conventional Commits**: Use format `feat:`, `fix:`, `docs:`, `refactor:`, `test:`
 - **Feature Branches**: Follow format `###-feature-name`
 - **Keep README Updated**: When adding or changing features, update README.md to reflect the changes
+- **No Auto-Push**: Never run `git push` unless explicitly asked by the user
