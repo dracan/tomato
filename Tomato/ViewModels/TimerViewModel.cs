@@ -55,6 +55,15 @@ public partial class TimerViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void StartFocusWithDuration(string minutesString)
+    {
+        if (int.TryParse(minutesString, out var minutes))
+        {
+            _sessionManager.StartFocus(TimeSpan.FromMinutes(minutes));
+        }
+    }
+
+    [RelayCommand]
     private void StartBreak()
     {
         _sessionManager.StartBreak();

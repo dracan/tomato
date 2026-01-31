@@ -19,6 +19,14 @@
 
     <!-- Main container with rounded corners and session-type background color -->
     <Border CornerRadius="8">
+        <Border.ContextMenu>
+            <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                <MenuItem Header="20 minutes" Command="{Binding StartFocusWithDurationCommand}" CommandParameter="20"/>
+                <MenuItem Header="15 minutes" Command="{Binding StartFocusWithDurationCommand}" CommandParameter="15"/>
+                <MenuItem Header="10 minutes" Command="{Binding StartFocusWithDurationCommand}" CommandParameter="10"/>
+                <MenuItem Header="5 minutes" Command="{Binding StartFocusWithDurationCommand}" CommandParameter="5"/>
+            </ContextMenu>
+        </Border.ContextMenu>
         <Border.Background>
             <MultiBinding Converter="{StaticResource SessionStateToBrushConverter}">
                 <Binding Path="CurrentSessionType"/>

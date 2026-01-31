@@ -66,6 +66,12 @@ public interface ISessionManager
     void StartFocus();
 
     /// <summary>
+    /// Starts a new focus session with the specified duration.
+    /// </summary>
+    /// <param name="duration">The duration for the focus session.</param>
+    void StartFocus(TimeSpan duration);
+
+    /// <summary>
     /// Starts a break session (short or long based on cycle).
     /// </summary>
     void StartBreak();

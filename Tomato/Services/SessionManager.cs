@@ -65,6 +65,25 @@ public sealed class SessionManager : ISessionManager
     }
 
     /// <inheritdoc />
+    public void StartFocus(TimeSpan duration)
+    {
+        // Cancel any existing session
+        if (CurrentSession?.Status == SessionStatus.Running)
+        {
+            CancelInternal();
+        }
+
+        CurrentSession = Session.CreateFocus(duration);
+        CurrentSession.Status = SessionStatus.Running;
+        CurrentSession.StartedAt = _dateTimeProvider.Now;
+
+        _timerService.Start(CurrentSession.Duration);
+
+        RaiseSessionStateChanged(SessionStatus.NotStarted, SessionStatus.Running);
+        PersistState();
+    }
+
+    /// <inheritdoc />
     public void StartBreak()
     {
         // Cancel any existing session

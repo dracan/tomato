@@ -115,6 +115,46 @@ public class SessionManagerTests
         _sut.CurrentSession.Should().NotBeSameAs(firstSession);
     }
 
+    [Fact]
+    public void StartFocus_WithCustomDuration_SetsCorrectDuration()
+    {
+        // Arrange
+        var customDuration = TimeSpan.FromMinutes(15);
+
+        // Act
+        _sut.StartFocus(customDuration);
+
+        // Assert
+        _sut.CurrentSession.Should().NotBeNull();
+        _sut.CurrentSession!.Duration.Should().Be(customDuration);
+    }
+
+    [Fact]
+    public void StartFocus_WithCustomDuration_SetsStatusToRunning()
+    {
+        // Arrange
+        var customDuration = TimeSpan.FromMinutes(10);
+
+        // Act
+        _sut.StartFocus(customDuration);
+
+        // Assert
+        _sut.CurrentSession!.Status.Should().Be(SessionStatus.Running);
+    }
+
+    [Fact]
+    public void StartFocus_WithCustomDuration_StartsTimerWithCorrectDuration()
+    {
+        // Arrange
+        var customDuration = TimeSpan.FromMinutes(20);
+
+        // Act
+        _sut.StartFocus(customDuration);
+
+        // Assert
+        _timerService.Received(1).Start(customDuration);
+    }
+
     #endregion
 
     #region US1: Complete Session
