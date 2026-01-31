@@ -2,6 +2,8 @@
 
 A minimal Windows desktop Pomodoro timer.
 
+![Banner](Assets/TomatoBanner.jpg)
+
 ## Features
 
 - 25-minute focus sessions with short and long breaks
