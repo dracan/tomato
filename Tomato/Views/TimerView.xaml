@@ -14,6 +14,7 @@
         <converters:StartButtonVisibilityConverter x:Key="StartButtonVisibilityConverter"/>
         <converters:PauseButtonVisibilityConverter x:Key="PauseButtonVisibilityConverter"/>
         <converters:StopButtonVisibilityConverter x:Key="StopButtonVisibilityConverter"/>
+        <converters:IdleButtonVisibilityConverter x:Key="IdleButtonVisibilityConverter"/>
     </UserControl.Resources>
 
     <!-- Main container with rounded corners and session-type background color -->
@@ -84,6 +85,20 @@
                         Command="{Binding CancelCommand}">
                     <Button.Visibility>
                         <MultiBinding Converter="{StaticResource StopButtonVisibilityConverter}">
+                            <Binding Path="IsRunning"/>
+                            <Binding Path="IsPaused"/>
+                        </MultiBinding>
+                    </Button.Visibility>
+                </Button>
+
+                <!-- Break button: visible when idle -->
+                <Button Content="☕"
+                        Style="{StaticResource MiniControlButtonStyle}"
+                        VerticalAlignment="Center"
+                        Margin="8,0,0,0"
+                        Command="{Binding StartBreakCommand}">
+                    <Button.Visibility>
+                        <MultiBinding Converter="{StaticResource IdleButtonVisibilityConverter}">
                             <Binding Path="IsRunning"/>
                             <Binding Path="IsPaused"/>
                         </MultiBinding>

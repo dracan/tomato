@@ -57,6 +57,32 @@ public class PauseButtonVisibilityConverter : IMultiValueConverter
 }
 
 /// <summary>
+/// Multi-value converter for idle-only button visibility (e.g., Break button).
+/// Shows when idle (!IsRunning && !IsPaused).
+/// </summary>
+public class IdleButtonVisibilityConverter : IMultiValueConverter
+{
+    public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (values.Length < 2)
+            return Visibility.Collapsed;
+
+        var isRunning = values[0] is bool running && running;
+        var isPaused = values[1] is bool paused && paused;
+
+        // Show button only when idle (not running and not paused)
+        return (!isRunning && !isPaused)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+    }
+
+    public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}
+
+/// <summary>
 /// Multi-value converter for Stop button visibility.
 /// Shows when running or paused (i.e., there's an active session to cancel).
 /// </summary>

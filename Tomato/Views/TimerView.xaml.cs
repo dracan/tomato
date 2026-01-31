@@ -16,7 +16,7 @@ public partial class TimerView : UserControl
 
     /// <summary>
     /// Handles the Start/Resume button click.
-    /// Starts a new session when idle, or resumes when paused.
+    /// Starts a focus session when idle, or resumes when paused.
     /// </summary>
     private void StartButton_Click(object sender, RoutedEventArgs e)
     {
@@ -26,11 +26,6 @@ public partial class TimerView : UserControl
         if (vm.IsPaused)
         {
             vm.ResumeCommand.Execute(null);
-        }
-        else if (vm.IsSessionComplete)
-        {
-            // After a completed session, start the next appropriate session
-            vm.StartBreakCommand.Execute(null);
         }
         else
         {
