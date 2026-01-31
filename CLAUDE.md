@@ -10,19 +10,19 @@ Tomato is a Windows desktop Pomodoro timer application built with C# .NET 8.0 an
 
 ```bash
 # Build the solution
-dotnet build src/Tomato.sln
+dotnet build Tomato.sln
 
 # Run the application
-dotnet run --project src/Tomato/Tomato.csproj
+dotnet run --project Tomato/Tomato.csproj
 
 # Run all tests
-dotnet test src/Tomato.sln
+dotnet test Tomato.sln
 
 # Run a specific test class
-dotnet test src/Tomato.Tests --filter "FullyQualifiedName~SessionManagerTests"
+dotnet test Tomato.Tests --filter "FullyQualifiedName~SessionManagerTests"
 
 # Run a specific test method
-dotnet test src/Tomato.Tests --filter "FullyQualifiedName~SessionManagerTests.StartSession_WhenNotStarted_SetsStatusToRunning"
+dotnet test Tomato.Tests --filter "FullyQualifiedName~SessionManagerTests.StartSession_WhenNotStarted_SetsStatusToRunning"
 ```
 
 ## Architecture
@@ -33,7 +33,7 @@ dotnet test src/Tomato.Tests --filter "FullyQualifiedName~SessionManagerTests.St
 - **Manual Dependency Injection**: Services are instantiated and wired in `App.xaml.cs` OnStartup
 - **Event-Driven Updates**: `ISessionManager` exposes `SessionStateChanged` and `TimerTick` events that ViewModels observe
 
-### Key Services (`src/Tomato/Services/`)
+### Key Services (`Tomato/Services/`)
 
 - `ISessionManager` / `SessionManager`: State machine orchestrating session lifecycle, statistics, and cycle progression
 - `ITimerService` / `TimerService`: High-accuracy timer using Stopwatch for drift compensation
@@ -48,7 +48,7 @@ dotnet test src/Tomato.Tests --filter "FullyQualifiedName~SessionManagerTests.St
 - `DailyStatistics`: Today's completed sessions and total time
 - `AppState`: Serializable state model with nested `SessionState`, `CycleState`, `DailyStatisticsState`
 
-### Testing (`src/Tomato.Tests/`)
+### Testing (`Tomato.Tests/`)
 
 - xUnit with FluentAssertions for readable assertions
 - NSubstitute for mocking service interfaces
@@ -56,18 +56,8 @@ dotnet test src/Tomato.Tests --filter "FullyQualifiedName~SessionManagerTests.St
 
 ## Development Principles
 
-From the project constitution (`.specify/memory/constitution.md`):
-
 - **Test-Driven Development**: Tests before implementation, Red-Green-Refactor cycle
 - **Simplicity Over Features**: YAGNI applies; don't add complexity to basic start/pause/stop workflow
 - **Reliability & Accuracy**: Timer accuracy must be maintained; session data must persist across restarts
 - **Conventional Commits**: Use format `feat:`, `fix:`, `docs:`, `refactor:`, `test:`
 - **Feature Branches**: Follow format `###-feature-name`
-
-## Feature Specifications
-
-Feature specifications live in `specs/###-feature-name/` directories with:
-- `spec.md`: Requirements and user stories
-- `plan.md`: Implementation approach
-- `tasks.md`: Breakdown of implementation tasks
-- `research.md`: Technical research and decisions
