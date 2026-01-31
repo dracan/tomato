@@ -8,26 +8,30 @@ on:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        configuration: [Debug, Release]
-
     runs-on: windows-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-    - name: Install .NET Core
+    - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
 
-    - name: Restore dependencies
+    - name: Restore
       run: dotnet restore Tomato.sln
 
     - name: Build
-      run: dotnet build Tomato.sln --configuration ${{ matrix.configuration }} --no-restore
+      run: dotnet build Tomato.sln -c Release --no-restore
 
     - name: Test
-      run: dotnet test Tomato.sln --configuration ${{ matrix.configuration }} --no-build --verbosity normal
+      run: dotnet test Tomato.sln -c Release --no-build --verbosity normal
+
+    - name: Publish
+      run: dotnet publish Tomato/Tomato.csproj -c Release -o publish --no-build
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Tomato-win-x64
+        path: publish/
