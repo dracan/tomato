@@ -33,4 +33,22 @@ public sealed class DialogService : IDialogService
 
         return Task.FromResult(new GoalDialogResult(confirmed, goal));
     }
+
+    /// <inheritdoc />
+    public Task<ResultsDialogResult> ShowResultsDialogAsync(string? goal)
+    {
+        var viewModel = new ResultsDialogViewModel { Goal = goal };
+        var dialog = new ResultsDialog
+        {
+            DataContext = viewModel,
+            Owner = _owner
+        };
+
+        dialog.ShowDialog();
+
+        var confirmed = viewModel.DialogResult == true;
+        var results = confirmed ? viewModel.Results : null;
+
+        return Task.FromResult(new ResultsDialogResult(confirmed, results));
+    }
 }

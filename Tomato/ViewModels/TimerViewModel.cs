@@ -139,6 +139,24 @@ public partial class TimerViewModel : ObservableObject
     {
         UpdateFromSession(e.Session, e.NewStatus);
         UpdateStatistics();
+
+        // Show results dialog when a focus session completes
+        if (e.NewStatus == SessionStatus.Completed && e.Session.Type == SessionType.Focus)
+        {
+            _ = ShowResultsDialogAsync();
+        }
+    }
+
+    private async Task ShowResultsDialogAsync()
+    {
+        var result = await _dialogService.ShowResultsDialogAsync(CurrentGoal);
+        if (result.Confirmed && !string.IsNullOrWhiteSpace(result.Results))
+        {
+            // Results are captured - could be persisted or logged in the future
+        }
+
+        // Clear the goal after the session is complete
+        CurrentGoal = null;
     }
 
     private void UpdateFromSession(Session session, SessionStatus status)

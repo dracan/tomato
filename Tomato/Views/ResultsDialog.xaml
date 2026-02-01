@@ -1,0 +1,79 @@
+<Window x:Class="Tomato.Views.ResultsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Tomato.ViewModels"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance Type=vm:ResultsDialogViewModel}"
+        Title="Session Complete"
+        Width="350"
+        Height="220"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{StaticResource BackgroundBrush}"
+        WindowStyle="None"
+        AllowsTransparency="True">
+
+    <Border CornerRadius="8"
+            Background="{StaticResource BackgroundBrush}"
+            BorderBrush="{StaticResource SurfaceBrush}"
+            BorderThickness="1">
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Prompt -->
+            <TextBlock Grid.Row="0"
+                       Text="How did the session go?"
+                       Foreground="{StaticResource TextPrimaryBrush}"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       Margin="0,0,0,8"/>
+
+            <!-- Goal display (if set) -->
+            <TextBlock Grid.Row="1"
+                       Text="{Binding Goal, StringFormat='Goal: {0}'}"
+                       Foreground="{StaticResource TextSecondaryBrush}"
+                       FontSize="12"
+                       TextWrapping="Wrap"
+                       Margin="0,0,0,12"
+                       Visibility="{Binding Goal, Converter={StaticResource NullToCollapsedConverter}}"/>
+
+            <!-- Results TextBox -->
+            <TextBox Grid.Row="2"
+                     Text="{Binding Results, UpdateSourceTrigger=PropertyChanged}"
+                     Background="{StaticResource SurfaceBrush}"
+                     Foreground="{StaticResource TextPrimaryBrush}"
+                     BorderBrush="{StaticResource TextSecondaryBrush}"
+                     BorderThickness="1"
+                     Padding="8"
+                     FontSize="14"
+                     AcceptsReturn="True"
+                     TextWrapping="Wrap"
+                     VerticalScrollBarVisibility="Auto"
+                     x:Name="ResultsTextBox"/>
+
+            <!-- Buttons -->
+            <StackPanel Grid.Row="3"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Margin="0,16,0,0">
+                <Button Content="Skip"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        Command="{Binding CancelCommand}"
+                        Padding="16,8"
+                        Margin="0,0,8,0"/>
+                <Button Content="Save"
+                        Style="{StaticResource PrimaryButtonStyle}"
+                        Command="{Binding ConfirmCommand}"
+                        Padding="16,8"
+                        IsDefault="True"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

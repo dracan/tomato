@@ -8,6 +8,8 @@ A minimal Windows desktop Pomodoro timer.
 
 - 25-minute focus sessions with short and long breaks
 - 4-session cycles (Focus → Break → Focus → Break → Focus → Break → Focus → Long Break)
+- Goal setting dialog when starting a focus session
+- Results dialog when a focus session completes
 - Session statistics tracking
 - Sound notifications on session completion
 - State persistence across restarts
