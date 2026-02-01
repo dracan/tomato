@@ -40,6 +40,19 @@ public partial class TimerViewModel : ObservableObject
     [ObservableProperty]
     private string? _currentGoal;
 
+    /// <summary>
+    /// Returns the goal text for tooltip display, or null if no tooltip should be shown.
+    /// Tooltip is only shown when a session is active (running or paused) and has a non-empty goal.
+    /// </summary>
+    public string? GoalTooltip =>
+        (IsRunning || IsPaused) && !string.IsNullOrWhiteSpace(CurrentGoal)
+            ? CurrentGoal
+            : null;
+
+    partial void OnIsRunningChanged(bool value) => OnPropertyChanged(nameof(GoalTooltip));
+    partial void OnIsPausedChanged(bool value) => OnPropertyChanged(nameof(GoalTooltip));
+    partial void OnCurrentGoalChanged(string? value) => OnPropertyChanged(nameof(GoalTooltip));
+
     public TimerViewModel(ISessionManager sessionManager, IDialogService dialogService)
     {
         _sessionManager = sessionManager;
