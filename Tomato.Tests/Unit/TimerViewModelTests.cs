@@ -10,6 +10,7 @@ public class TimerViewModelTests
 {
     private readonly ISessionManager _sessionManager;
     private readonly IDialogService _dialogService;
+    private readonly IStatisticsReportService _statisticsReportService;
     private readonly TimerViewModel _sut;
 
     public TimerViewModelTests()
@@ -21,7 +22,9 @@ public class TimerViewModelTests
         _dialogService = Substitute.For<IDialogService>();
         _dialogService.ShowGoalDialogAsync().Returns(new GoalDialogResult(true, null));
 
-        _sut = new TimerViewModel(_sessionManager, _dialogService);
+        _statisticsReportService = Substitute.For<IStatisticsReportService>();
+
+        _sut = new TimerViewModel(_sessionManager, _dialogService, _statisticsReportService);
     }
 
     #region Initial State
@@ -332,7 +335,7 @@ public class TimerViewModelTests
         _sessionManager.TodayStatistics.Returns(stats);
 
         // Create new ViewModel to pick up updated stats
-        var sut = new TimerViewModel(_sessionManager, _dialogService);
+        var sut = new TimerViewModel(_sessionManager, _dialogService, _statisticsReportService);
 
         // Assert
         sut.CompletedSessionsToday.Should().Be(5);
@@ -348,7 +351,7 @@ public class TimerViewModelTests
         _sessionManager.Cycle.Returns(cycle);
 
         // Create new ViewModel
-        var sut = new TimerViewModel(_sessionManager, _dialogService);
+        var sut = new TimerViewModel(_sessionManager, _dialogService, _statisticsReportService);
 
         // Assert
         sut.CycleProgress.Should().Be("2/4");
@@ -449,6 +452,104 @@ public class TimerViewModelTests
         // Assert
         _sut.IsSessionComplete.Should().BeTrue();
         _sut.IsRunning.Should().BeFalse();
+    }
+
+    #endregion
+
+    #region Results Recording
+
+    [Fact]
+    public void WhenFocusSessionCompletes_ShowsResultsDialog()
+    {
+        // Arrange
+        var session = Session.CreateFocus("Test goal");
+        session.Status = SessionStatus.Completed;
+        _sessionManager.CurrentSession.Returns(session);
+        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>()).Returns(new ResultsDialogResult(true, "Some results"));
+
+        // Act
+        _sessionManager.SessionStateChanged += Raise.EventWith(
+            new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Completed));
+
+        // Assert - dialog should be shown
+        _dialogService.Received(1).ShowResultsDialogAsync(Arg.Any<string?>());
+    }
+
+    [Fact]
+    public void WhenBreakSessionCompletes_DoesNotShowResultsDialog()
+    {
+        // Arrange
+        var session = Session.CreateShortBreak();
+        session.Status = SessionStatus.Completed;
+        _sessionManager.CurrentSession.Returns(session);
+
+        // Act
+        _sessionManager.SessionStateChanged += Raise.EventWith(
+            new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Completed));
+
+        // Assert - dialog should not be shown for breaks
+        _dialogService.DidNotReceive().ShowResultsDialogAsync(Arg.Any<string?>());
+    }
+
+    [Fact]
+    public async Task WhenResultsDialogConfirmed_RecordsSessionResults()
+    {
+        // Arrange
+        _sut.CurrentGoal.Should().BeNull();
+        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>()).Returns(new ResultsDialogResult(true, "Completed task"));
+
+        // Simulate focus session completion
+        var session = Session.CreateFocus();
+        session.Status = SessionStatus.Completed;
+        _sessionManager.CurrentSession.Returns(session);
+        _sessionManager.SessionStateChanged += Raise.EventWith(
+            new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Completed));
+
+        // Allow async operations to complete
+        await Task.Delay(50);
+
+        // Assert
+        _sessionManager.Received(1).RecordSessionResults("Completed task");
+    }
+
+    [Fact]
+    public async Task WhenResultsDialogCancelled_DoesNotRecordSessionResults()
+    {
+        // Arrange
+        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>()).Returns(new ResultsDialogResult(false, null));
+
+        // Simulate focus session completion
+        var session = Session.CreateFocus();
+        session.Status = SessionStatus.Completed;
+        _sessionManager.CurrentSession.Returns(session);
+        _sessionManager.SessionStateChanged += Raise.EventWith(
+            new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Completed));
+
+        // Allow async operations to complete
+        await Task.Delay(50);
+
+        // Assert
+        _sessionManager.DidNotReceive().RecordSessionResults(Arg.Any<string?>());
+    }
+
+    [Fact]
+    public async Task WhenResultsDialogSubmittedEmpty_DoesNotRecordSessionResults()
+    {
+        // Arrange
+        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>()).Returns(new ResultsDialogResult(true, ""));
+
+        // Simulate focus session completion
+        var session = Session.CreateFocus();
+        session.Status = SessionStatus.Completed;
+        _sessionManager.CurrentSession.Returns(session);
+        _sessionManager.SessionStateChanged += Raise.EventWith(
+            new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Completed));
+
+        // Allow async operations to complete
+        await Task.Delay(50);
+
+        // Assert - empty results should not be recorded
+        _sessionManager.DidNotReceive().RecordSessionResults(Arg.Any<string?>());
     }
 
     #endregion

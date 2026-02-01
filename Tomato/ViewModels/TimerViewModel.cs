@@ -12,6 +12,7 @@ public partial class TimerViewModel : ObservableObject
 {
     private readonly ISessionManager _sessionManager;
     private readonly IDialogService _dialogService;
+    private readonly IStatisticsReportService _statisticsReportService;
 
     [ObservableProperty]
     private TimeSpan _timeRemaining = TimeSpan.FromMinutes(25);
@@ -53,10 +54,11 @@ public partial class TimerViewModel : ObservableObject
     partial void OnIsPausedChanged(bool value) => OnPropertyChanged(nameof(GoalTooltip));
     partial void OnCurrentGoalChanged(string? value) => OnPropertyChanged(nameof(GoalTooltip));
 
-    public TimerViewModel(ISessionManager sessionManager, IDialogService dialogService)
+    public TimerViewModel(ISessionManager sessionManager, IDialogService dialogService, IStatisticsReportService statisticsReportService)
     {
         _sessionManager = sessionManager;
         _dialogService = dialogService;
+        _statisticsReportService = statisticsReportService;
 
         // Subscribe to session manager events
         _sessionManager.TimerTick += OnTimerTick;
@@ -130,6 +132,12 @@ public partial class TimerViewModel : ObservableObject
         _sessionManager.Skip();
     }
 
+    [RelayCommand]
+    private void ViewStats()
+    {
+        _statisticsReportService.GenerateAndOpenReport();
+    }
+
     private void OnTimerTick(object? sender, TimerTickEventArgs e)
     {
         TimeRemaining = e.Remaining;
@@ -152,7 +160,7 @@ public partial class TimerViewModel : ObservableObject
         var result = await _dialogService.ShowResultsDialogAsync(CurrentGoal);
         if (result.Confirmed && !string.IsNullOrWhiteSpace(result.Results))
         {
-            // Results are captured - could be persisted or logged in the future
+            _sessionManager.RecordSessionResults(result.Results);
         }
 
         // Clear the goal after the session is complete

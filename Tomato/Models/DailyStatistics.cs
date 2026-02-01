@@ -31,6 +31,11 @@ public sealed class DailyStatistics
     public int CyclesCompleted { get; set; }
 
     /// <summary>
+    /// Gets the individual session records for this day.
+    /// </summary>
+    public List<SessionRecord> SessionRecords { get; } = new();
+
+    /// <summary>
     /// Creates a new DailyStatistics instance for the specified date.
     /// </summary>
     /// <param name="date">The date for these statistics.</param>
@@ -68,5 +73,14 @@ public sealed class DailyStatistics
     public void RecordCycleCompleted()
     {
         CyclesCompleted++;
+    }
+
+    /// <summary>
+    /// Adds a session record to this day's statistics.
+    /// </summary>
+    /// <param name="record">The session record to add.</param>
+    public void AddSessionRecord(SessionRecord record)
+    {
+        SessionRecords.Add(record);
     }
 }

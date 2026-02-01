@@ -61,6 +61,11 @@ public interface ISessionManager
     DailyStatistics TodayStatistics { get; }
 
     /// <summary>
+    /// Gets the historical daily statistics.
+    /// </summary>
+    IReadOnlyList<DailyStatistics> StatisticsHistory { get; }
+
+    /// <summary>
     /// Starts a new focus session.
     /// </summary>
     void StartFocus();
@@ -113,4 +118,10 @@ public interface ISessionManager
     /// Skips the remaining time in the current session.
     /// </summary>
     void Skip();
+
+    /// <summary>
+    /// Records the results of the most recently completed session.
+    /// </summary>
+    /// <param name="results">The results text to record.</param>
+    void RecordSessionResults(string? results);
 }

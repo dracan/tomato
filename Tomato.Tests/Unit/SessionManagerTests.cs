@@ -575,4 +575,112 @@ public class SessionManagerTests
     }
 
     #endregion
+
+    #region Session Records
+
+    [Fact]
+    public void OnFocusCompleted_CreatesSessionRecord()
+    {
+        // Arrange
+        var startTime = new DateTime(2024, 1, 15, 10, 0, 0);
+        var endTime = new DateTime(2024, 1, 15, 10, 25, 0);
+        _dateTimeProvider.Now.Returns(startTime, endTime);
+        _sut.StartFocus("Write tests");
+
+        // Act
+        _timerService.Completed += Raise.Event();
+
+        // Assert
+        _sut.TodayStatistics.SessionRecords.Should().HaveCount(1);
+        var record = _sut.TodayStatistics.SessionRecords[0];
+        record.Goal.Should().Be("Write tests");
+        record.Duration.Should().Be(TimeSpan.FromMinutes(25));
+        record.StartedAt.Should().Be(startTime);
+        record.CompletedAt.Should().Be(endTime);
+        record.Results.Should().BeNull();
+    }
+
+    [Fact]
+    public void OnFocusCompleted_WithoutGoal_CreatesSessionRecordWithNullGoal()
+    {
+        // Arrange
+        _sut.StartFocus();
+
+        // Act
+        _timerService.Completed += Raise.Event();
+
+        // Assert
+        _sut.TodayStatistics.SessionRecords.Should().HaveCount(1);
+        _sut.TodayStatistics.SessionRecords[0].Goal.Should().BeNull();
+    }
+
+    [Fact]
+    public void RecordSessionResults_UpdatesLastSessionRecord()
+    {
+        // Arrange
+        _sut.StartFocus("Write tests");
+        _timerService.Completed += Raise.Event();
+
+        // Act
+        _sut.RecordSessionResults("Completed 5 tests");
+
+        // Assert
+        _sut.TodayStatistics.SessionRecords[0].Results.Should().Be("Completed 5 tests");
+    }
+
+    [Fact]
+    public void RecordSessionResults_PersistsState()
+    {
+        // Arrange
+        _sut.StartFocus("Write tests");
+        _timerService.Completed += Raise.Event();
+        _persistenceService.ClearReceivedCalls();
+
+        // Act
+        _sut.RecordSessionResults("Completed 5 tests");
+
+        // Assert
+        _persistenceService.Received(1).SaveAsync(Arg.Any<AppState>());
+    }
+
+    [Fact]
+    public void RecordSessionResults_WithNoCompletedSession_DoesNothing()
+    {
+        // Act - no session has been completed yet
+        _sut.RecordSessionResults("Some results");
+
+        // Assert - should not throw or persist
+        _persistenceService.DidNotReceive().SaveAsync(Arg.Any<AppState>());
+    }
+
+    [Fact]
+    public void OnBreakCompleted_DoesNotCreateSessionRecord()
+    {
+        // Arrange
+        _sut.StartBreak();
+
+        // Act
+        _timerService.Completed += Raise.Event();
+
+        // Assert
+        _sut.TodayStatistics.SessionRecords.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void MultipleFocusSessions_CreateMultipleRecords()
+    {
+        // Arrange & Act
+        _sut.StartFocus("First task");
+        _timerService.Completed += Raise.Event();
+
+        _sut.StartFocus("Second task");
+        _timerService.Completed += Raise.Event();
+
+        // Assert
+        _sut.TodayStatistics.SessionRecords.Should().HaveCount(2);
+        _sut.TodayStatistics.SessionRecords[0].Goal.Should().Be("First task");
+        _sut.TodayStatistics.SessionRecords[1].Goal.Should().Be("Second task");
+    }
+
+    #endregion
 }

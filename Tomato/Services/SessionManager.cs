@@ -11,6 +11,8 @@ public sealed class SessionManager : ISessionManager
     private readonly INotificationService _notificationService;
     private readonly IPersistenceService _persistenceService;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private List<DailyStatistics> _statisticsHistory = new();
+    private SessionRecord? _lastCompletedSessionRecord;
 
     /// <inheritdoc />
     public event EventHandler<SessionStateChangedEventArgs>? SessionStateChanged;
@@ -26,6 +28,9 @@ public sealed class SessionManager : ISessionManager
 
     /// <inheritdoc />
     public DailyStatistics TodayStatistics { get; private set; }
+
+    /// <inheritdoc />
+    public IReadOnlyList<DailyStatistics> StatisticsHistory => _statisticsHistory;
 
     public SessionManager(
         ITimerService timerService,
@@ -173,6 +178,16 @@ public sealed class SessionManager : ISessionManager
         CompleteSession();
     }
 
+    /// <inheritdoc />
+    public void RecordSessionResults(string? results)
+    {
+        if (_lastCompletedSessionRecord == null)
+            return;
+
+        _lastCompletedSessionRecord.Results = results;
+        PersistState();
+    }
+
     /// <summary>
     /// Restores state from persistence.
     /// </summary>
@@ -184,6 +199,12 @@ public sealed class SessionManager : ISessionManager
 
         // Restore cycle
         Cycle = state.RestoreCycle();
+
+        // Restore statistics history (excluding today - today is loaded separately)
+        var restoredHistory = state.RestoreStatisticsHistory();
+        _statisticsHistory = restoredHistory
+            .Where(s => s.Date != _dateTimeProvider.Today)
+            .ToList();
 
         // Restore statistics if for today
         var restoredStats = state.RestoreStatistics();
@@ -247,6 +268,17 @@ public sealed class SessionManager : ISessionManager
             {
                 TodayStatistics.RecordCycleCompleted();
             }
+
+            // Create a session record for the completed focus session
+            _lastCompletedSessionRecord = new SessionRecord
+            {
+                Goal = CurrentSession.Goal,
+                Results = null,
+                Duration = CurrentSession.Duration,
+                StartedAt = CurrentSession.StartedAt ?? _dateTimeProvider.Now,
+                CompletedAt = CurrentSession.CompletedAt ?? _dateTimeProvider.Now
+            };
+            TodayStatistics.AddSessionRecord(_lastCompletedSessionRecord);
         }
         else
         {
@@ -281,6 +313,7 @@ public sealed class SessionManager : ISessionManager
             CurrentSession,
             Cycle,
             TodayStatistics,
+            _statisticsHistory,
             _dateTimeProvider.Now);
 
         _ = _persistenceService.SaveAsync(state);

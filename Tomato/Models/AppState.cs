@@ -29,6 +29,11 @@ public sealed class AppState
     public DateTime LastSavedAt { get; set; }
 
     /// <summary>
+    /// Gets or sets the historical daily statistics.
+    /// </summary>
+    public List<DailyStatisticsState> StatisticsHistory { get; set; } = new();
+
+    /// <summary>
     /// Represents a serializable session state.
     /// </summary>
     public sealed class SessionState
@@ -59,6 +64,19 @@ public sealed class AppState
         public TimeSpan TotalFocusTime { get; set; }
         public TimeSpan TotalBreakTime { get; set; }
         public int CyclesCompleted { get; set; }
+        public List<SessionRecordState> SessionRecords { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Represents a serializable session record.
+    /// </summary>
+    public sealed class SessionRecordState
+    {
+        public string? Goal { get; set; }
+        public string? Results { get; set; }
+        public TimeSpan Duration { get; set; }
+        public DateTime StartedAt { get; set; }
+        public DateTime CompletedAt { get; set; }
     }
 
     /// <summary>
@@ -67,7 +85,8 @@ public sealed class AppState
     public static AppState FromCurrentState(
         Session? currentSession,
         PomodoroCycle cycle,
-        DailyStatistics? statistics,
+        DailyStatistics? todayStatistics,
+        IReadOnlyList<DailyStatistics> statisticsHistory,
         DateTime savedAt)
     {
         var state = new AppState
@@ -92,19 +111,93 @@ public sealed class AppState
             };
         }
 
-        if (statistics != null)
+        if (todayStatistics != null)
         {
             state.TodayStatistics = new DailyStatisticsState
             {
-                Date = statistics.Date,
-                FocusSessionsCompleted = statistics.FocusSessionsCompleted,
-                TotalFocusTime = statistics.TotalFocusTime,
-                TotalBreakTime = statistics.TotalBreakTime,
-                CyclesCompleted = statistics.CyclesCompleted
+                Date = todayStatistics.Date,
+                FocusSessionsCompleted = todayStatistics.FocusSessionsCompleted,
+                TotalFocusTime = todayStatistics.TotalFocusTime,
+                TotalBreakTime = todayStatistics.TotalBreakTime,
+                CyclesCompleted = todayStatistics.CyclesCompleted,
+                SessionRecords = todayStatistics.SessionRecords
+                    .Select(r => new SessionRecordState
+                    {
+                        Goal = r.Goal,
+                        Results = r.Results,
+                        Duration = r.Duration,
+                        StartedAt = r.StartedAt,
+                        CompletedAt = r.CompletedAt
+                    })
+                    .ToList()
             };
         }
 
+        // Merge today's statistics into history
+        state.StatisticsHistory = MergeStatisticsHistory(statisticsHistory, todayStatistics);
+
         return state;
+    }
+
+    private static List<DailyStatisticsState> MergeStatisticsHistory(
+        IReadOnlyList<DailyStatistics> history,
+        DailyStatistics? today)
+    {
+        var result = new List<DailyStatisticsState>();
+
+        // Add historical entries (excluding today if present)
+        foreach (var stat in history)
+        {
+            if (today == null || stat.Date != today.Date)
+            {
+                result.Add(new DailyStatisticsState
+                {
+                    Date = stat.Date,
+                    FocusSessionsCompleted = stat.FocusSessionsCompleted,
+                    TotalFocusTime = stat.TotalFocusTime,
+                    TotalBreakTime = stat.TotalBreakTime,
+                    CyclesCompleted = stat.CyclesCompleted,
+                    SessionRecords = stat.SessionRecords
+                        .Select(r => new SessionRecordState
+                        {
+                            Goal = r.Goal,
+                            Results = r.Results,
+                            Duration = r.Duration,
+                            StartedAt = r.StartedAt,
+                            CompletedAt = r.CompletedAt
+                        })
+                        .ToList()
+                });
+            }
+        }
+
+        // Add today's statistics if present and has data
+        if (today != null && (today.FocusSessionsCompleted > 0 || today.TotalFocusTime > TimeSpan.Zero))
+        {
+            result.Add(new DailyStatisticsState
+            {
+                Date = today.Date,
+                FocusSessionsCompleted = today.FocusSessionsCompleted,
+                TotalFocusTime = today.TotalFocusTime,
+                TotalBreakTime = today.TotalBreakTime,
+                CyclesCompleted = today.CyclesCompleted,
+                SessionRecords = today.SessionRecords
+                    .Select(r => new SessionRecordState
+                    {
+                        Goal = r.Goal,
+                        Results = r.Results,
+                        Duration = r.Duration,
+                        StartedAt = r.StartedAt,
+                        CompletedAt = r.CompletedAt
+                    })
+                    .ToList()
+            });
+        }
+
+        // Sort by date descending (most recent first)
+        result.Sort((a, b) => b.Date.CompareTo(a.Date));
+
+        return result;
     }
 
     /// <summary>
@@ -147,7 +240,7 @@ public sealed class AppState
     {
         if (TodayStatistics == null) return null;
 
-        return new DailyStatistics
+        var stats = new DailyStatistics
         {
             Date = TodayStatistics.Date,
             FocusSessionsCompleted = TodayStatistics.FocusSessionsCompleted,
@@ -155,5 +248,55 @@ public sealed class AppState
             TotalBreakTime = TodayStatistics.TotalBreakTime,
             CyclesCompleted = TodayStatistics.CyclesCompleted
         };
+
+        foreach (var recordState in TodayStatistics.SessionRecords)
+        {
+            stats.AddSessionRecord(new SessionRecord
+            {
+                Goal = recordState.Goal,
+                Results = recordState.Results,
+                Duration = recordState.Duration,
+                StartedAt = recordState.StartedAt,
+                CompletedAt = recordState.CompletedAt
+            });
+        }
+
+        return stats;
+    }
+
+    /// <summary>
+    /// Restores the statistics history from the saved state.
+    /// </summary>
+    public List<DailyStatistics> RestoreStatisticsHistory()
+    {
+        var result = new List<DailyStatistics>();
+
+        foreach (var state in StatisticsHistory)
+        {
+            var stats = new DailyStatistics
+            {
+                Date = state.Date,
+                FocusSessionsCompleted = state.FocusSessionsCompleted,
+                TotalFocusTime = state.TotalFocusTime,
+                TotalBreakTime = state.TotalBreakTime,
+                CyclesCompleted = state.CyclesCompleted
+            };
+
+            foreach (var recordState in state.SessionRecords)
+            {
+                stats.AddSessionRecord(new SessionRecord
+                {
+                    Goal = recordState.Goal,
+                    Results = recordState.Results,
+                    Duration = recordState.Duration,
+                    StartedAt = recordState.StartedAt,
+                    CompletedAt = recordState.CompletedAt
+                });
+            }
+
+            result.Add(stats);
+        }
+
+        return result;
     }
 }
