@@ -1,0 +1,36 @@
+using System.Windows;
+using Tomato.ViewModels;
+using Tomato.Views;
+
+namespace Tomato.Services;
+
+/// <summary>
+/// WPF implementation of IDialogService.
+/// </summary>
+public sealed class DialogService : IDialogService
+{
+    private readonly Window _owner;
+
+    public DialogService(Window owner)
+    {
+        _owner = owner;
+    }
+
+    /// <inheritdoc />
+    public Task<GoalDialogResult> ShowGoalDialogAsync()
+    {
+        var viewModel = new GoalDialogViewModel();
+        var dialog = new GoalDialog
+        {
+            DataContext = viewModel,
+            Owner = _owner
+        };
+
+        dialog.ShowDialog();
+
+        var confirmed = viewModel.DialogResult == true;
+        var goal = confirmed ? viewModel.Goal : null;
+
+        return Task.FromResult(new GoalDialogResult(confirmed, goal));
+    }
+}

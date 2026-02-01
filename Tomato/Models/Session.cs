@@ -35,25 +35,34 @@ public sealed class Session
     /// </summary>
     public DateTime? CompletedAt { get; set; }
 
-    private Session(SessionType type, TimeSpan duration)
+    /// <summary>
+    /// Gets the goal for this session (focus sessions only).
+    /// </summary>
+    public string? Goal { get; }
+
+    private Session(SessionType type, TimeSpan duration, string? goal = null)
     {
         Type = type;
         Duration = duration;
         TimeRemaining = duration;
         Status = SessionStatus.NotStarted;
+        Goal = goal;
     }
 
     /// <summary>
     /// Creates a new Focus session with the default 25-minute duration.
     /// </summary>
-    public static Session CreateFocus()
-        => new(SessionType.Focus, TimeSpan.FromMinutes(25));
+    /// <param name="goal">Optional goal for this focus session.</param>
+    public static Session CreateFocus(string? goal = null)
+        => new(SessionType.Focus, TimeSpan.FromMinutes(25), goal);
 
     /// <summary>
     /// Creates a new Focus session with a custom duration.
     /// </summary>
-    public static Session CreateFocus(TimeSpan duration)
-        => new(SessionType.Focus, duration);
+    /// <param name="duration">The duration for this focus session.</param>
+    /// <param name="goal">Optional goal for this focus session.</param>
+    public static Session CreateFocus(TimeSpan duration, string? goal = null)
+        => new(SessionType.Focus, duration, goal);
 
     /// <summary>
     /// Creates a new Short Break session with the default 5-minute duration.

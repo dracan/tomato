@@ -9,6 +9,7 @@ namespace Tomato.Tests.Unit;
 public class TimerViewModelTests
 {
     private readonly ISessionManager _sessionManager;
+    private readonly IDialogService _dialogService;
     private readonly TimerViewModel _sut;
 
     public TimerViewModelTests()
@@ -17,7 +18,10 @@ public class TimerViewModelTests
         _sessionManager.Cycle.Returns(new PomodoroCycle());
         _sessionManager.TodayStatistics.Returns(DailyStatistics.Create(DateOnly.FromDateTime(DateTime.Now)));
 
-        _sut = new TimerViewModel(_sessionManager);
+        _dialogService = Substitute.For<IDialogService>();
+        _dialogService.ShowGoalDialogAsync().Returns(new GoalDialogResult(true, null));
+
+        _sut = new TimerViewModel(_sessionManager, _dialogService);
     }
 
     #region Initial State
@@ -55,13 +59,85 @@ public class TimerViewModelTests
     #region Start Command
 
     [Fact]
-    public void StartFocusCommand_CallsSessionManagerStartFocus()
+    public async Task StartFocusCommand_WhenConfirmed_StartsSessionWithGoal()
     {
+        // Arrange
+        var goal = "Complete feature";
+        _dialogService.ShowGoalDialogAsync().Returns(new GoalDialogResult(true, goal));
+
         // Act
-        _sut.StartFocusCommand.Execute(null);
+        await _sut.StartFocusCommand.ExecuteAsync(null);
 
         // Assert
-        _sessionManager.Received(1).StartFocus();
+        _sessionManager.Received(1).StartFocus(goal);
+    }
+
+    [Fact]
+    public async Task StartFocusCommand_WhenCancelled_DoesNotStartSession()
+    {
+        // Arrange
+        _dialogService.ShowGoalDialogAsync().Returns(new GoalDialogResult(false, null));
+
+        // Act
+        await _sut.StartFocusCommand.ExecuteAsync(null);
+
+        // Assert
+        _sessionManager.DidNotReceive().StartFocus(Arg.Any<string?>());
+    }
+
+    [Fact]
+    public async Task StartFocusCommand_WhenConfirmed_SetsCurrentGoal()
+    {
+        // Arrange
+        var goal = "Complete feature";
+        _dialogService.ShowGoalDialogAsync().Returns(new GoalDialogResult(true, goal));
+
+        // Act
+        await _sut.StartFocusCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.CurrentGoal.Should().Be(goal);
+    }
+
+    [Fact]
+    public async Task StartFocusCommand_WhenCancelled_DoesNotSetCurrentGoal()
+    {
+        // Arrange
+        _dialogService.ShowGoalDialogAsync().Returns(new GoalDialogResult(false, null));
+        _sut.CurrentGoal.Should().BeNull(); // Initial state
+
+        // Act
+        await _sut.StartFocusCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.CurrentGoal.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task StartFocusWithDurationCommand_WhenConfirmed_StartsSessionWithDurationAndGoal()
+    {
+        // Arrange
+        var goal = "Quick task";
+        _dialogService.ShowGoalDialogAsync().Returns(new GoalDialogResult(true, goal));
+
+        // Act
+        await _sut.StartFocusWithDurationCommand.ExecuteAsync("15");
+
+        // Assert
+        _sessionManager.Received(1).StartFocus(TimeSpan.FromMinutes(15), goal);
+    }
+
+    [Fact]
+    public async Task StartFocusWithDurationCommand_WhenCancelled_DoesNotStartSession()
+    {
+        // Arrange
+        _dialogService.ShowGoalDialogAsync().Returns(new GoalDialogResult(false, null));
+
+        // Act
+        await _sut.StartFocusWithDurationCommand.ExecuteAsync("15");
+
+        // Assert
+        _sessionManager.DidNotReceive().StartFocus(Arg.Any<TimeSpan>(), Arg.Any<string?>());
     }
 
     [Fact]
@@ -256,7 +332,7 @@ public class TimerViewModelTests
         _sessionManager.TodayStatistics.Returns(stats);
 
         // Create new ViewModel to pick up updated stats
-        var sut = new TimerViewModel(_sessionManager);
+        var sut = new TimerViewModel(_sessionManager, _dialogService);
 
         // Assert
         sut.CompletedSessionsToday.Should().Be(5);
@@ -272,7 +348,7 @@ public class TimerViewModelTests
         _sessionManager.Cycle.Returns(cycle);
 
         // Create new ViewModel
-        var sut = new TimerViewModel(_sessionManager);
+        var sut = new TimerViewModel(_sessionManager, _dialogService);
 
         // Assert
         sut.CycleProgress.Should().Be("2/4");

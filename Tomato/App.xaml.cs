@@ -15,6 +15,7 @@ public partial class App : Application
     private IPersistenceService? _persistenceService;
     private IDateTimeProvider? _dateTimeProvider;
     private ISessionManager? _sessionManager;
+    private IDialogService? _dialogService;
 
     // ViewModels
     private TimerViewModel? _timerViewModel;
@@ -40,15 +41,18 @@ public partial class App : Application
         // Restore state from disk
         await ((SessionManager)_sessionManager).RestoreStateAsync();
 
+        // Create and show main window first (needed for DialogService owner)
+        var mainWindow = new MainWindow();
+
+        // Create DialogService with MainWindow as owner
+        _dialogService = new DialogService(mainWindow);
+
         // Create ViewModels
-        _timerViewModel = new TimerViewModel(_sessionManager);
+        _timerViewModel = new TimerViewModel(_sessionManager, _dialogService);
         _mainViewModel = new MainViewModel(_timerViewModel);
 
-        // Create and show main window
-        var mainWindow = new MainWindow
-        {
-            DataContext = _mainViewModel
-        };
+        // Set DataContext and show window
+        mainWindow.DataContext = _mainViewModel;
         mainWindow.Show();
     }
 

@@ -18,7 +18,7 @@ public partial class TimerView : UserControl
     /// Handles the Start/Resume button click.
     /// Starts a focus session when idle, or resumes when paused.
     /// </summary>
-    private void StartButton_Click(object sender, RoutedEventArgs e)
+    private async void StartButton_Click(object sender, RoutedEventArgs e)
     {
         if (DataContext is not TimerViewModel vm)
             return;
@@ -30,7 +30,7 @@ public partial class TimerView : UserControl
         else
         {
             // Idle state - start a focus session
-            vm.StartFocusCommand.Execute(null);
+            await vm.StartFocusCommand.ExecuteAsync(null);
         }
     }
 

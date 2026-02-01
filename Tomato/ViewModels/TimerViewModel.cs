@@ -11,6 +11,7 @@ namespace Tomato.ViewModels;
 public partial class TimerViewModel : ObservableObject
 {
     private readonly ISessionManager _sessionManager;
+    private readonly IDialogService _dialogService;
 
     [ObservableProperty]
     private TimeSpan _timeRemaining = TimeSpan.FromMinutes(25);
@@ -36,9 +37,13 @@ public partial class TimerViewModel : ObservableObject
     [ObservableProperty]
     private string _cycleProgress = "0/4";
 
-    public TimerViewModel(ISessionManager sessionManager)
+    [ObservableProperty]
+    private string? _currentGoal;
+
+    public TimerViewModel(ISessionManager sessionManager, IDialogService dialogService)
     {
         _sessionManager = sessionManager;
+        _dialogService = dialogService;
 
         // Subscribe to session manager events
         _sessionManager.TimerTick += OnTimerTick;
@@ -49,17 +54,29 @@ public partial class TimerViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void StartFocus()
+    private async Task StartFocusAsync()
     {
-        _sessionManager.StartFocus();
+        var result = await _dialogService.ShowGoalDialogAsync();
+        if (result.Confirmed)
+        {
+            CurrentGoal = result.Goal;
+            _sessionManager.StartFocus(result.Goal);
+        }
     }
 
     [RelayCommand]
-    private void StartFocusWithDuration(string minutesString)
+    private async Task StartFocusWithDurationAsync(string minutesString)
     {
-        if (int.TryParse(minutesString, out var minutes))
+        if (!int.TryParse(minutesString, out var minutes))
         {
-            _sessionManager.StartFocus(TimeSpan.FromMinutes(minutes));
+            return;
+        }
+
+        var result = await _dialogService.ShowGoalDialogAsync();
+        if (result.Confirmed)
+        {
+            CurrentGoal = result.Goal;
+            _sessionManager.StartFocus(TimeSpan.FromMinutes(minutes), result.Goal);
         }
     }
 

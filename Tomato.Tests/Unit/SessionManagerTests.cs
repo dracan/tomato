@@ -526,4 +526,60 @@ public class SessionManagerTests
     }
 
     #endregion
+
+    #region Goal Support
+
+    [Fact]
+    public void StartFocus_WithGoal_StoresGoalOnSession()
+    {
+        // Arrange
+        var goal = "Complete code review";
+
+        // Act
+        _sut.StartFocus(goal);
+
+        // Assert
+        _sut.CurrentSession.Should().NotBeNull();
+        _sut.CurrentSession!.Goal.Should().Be(goal);
+    }
+
+    [Fact]
+    public void StartFocus_WithDurationAndGoal_StoresBoth()
+    {
+        // Arrange
+        var duration = TimeSpan.FromMinutes(15);
+        var goal = "Write unit tests";
+
+        // Act
+        _sut.StartFocus(duration, goal);
+
+        // Assert
+        _sut.CurrentSession.Should().NotBeNull();
+        _sut.CurrentSession!.Duration.Should().Be(duration);
+        _sut.CurrentSession!.Goal.Should().Be(goal);
+    }
+
+    [Fact]
+    public void StartFocus_WithNullGoal_HasNullGoalOnSession()
+    {
+        // Act
+        _sut.StartFocus(goal: null);
+
+        // Assert
+        _sut.CurrentSession.Should().NotBeNull();
+        _sut.CurrentSession!.Goal.Should().BeNull();
+    }
+
+    [Fact]
+    public void StartFocus_WithoutGoal_HasNullGoalOnSession()
+    {
+        // Act
+        _sut.StartFocus();
+
+        // Assert
+        _sut.CurrentSession.Should().NotBeNull();
+        _sut.CurrentSession!.Goal.Should().BeNull();
+    }
+
+    #endregion
 }

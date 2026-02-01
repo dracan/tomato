@@ -46,7 +46,10 @@ public sealed class SessionManager : ISessionManager
     }
 
     /// <inheritdoc />
-    public void StartFocus()
+    public void StartFocus() => StartFocus(goal: null);
+
+    /// <inheritdoc />
+    public void StartFocus(string? goal)
     {
         // Cancel any existing session
         if (CurrentSession?.Status == SessionStatus.Running)
@@ -54,7 +57,7 @@ public sealed class SessionManager : ISessionManager
             CancelInternal();
         }
 
-        CurrentSession = Session.CreateFocus();
+        CurrentSession = Session.CreateFocus(goal);
         CurrentSession.Status = SessionStatus.Running;
         CurrentSession.StartedAt = _dateTimeProvider.Now;
 
@@ -65,7 +68,10 @@ public sealed class SessionManager : ISessionManager
     }
 
     /// <inheritdoc />
-    public void StartFocus(TimeSpan duration)
+    public void StartFocus(TimeSpan duration) => StartFocus(duration, goal: null);
+
+    /// <inheritdoc />
+    public void StartFocus(TimeSpan duration, string? goal)
     {
         // Cancel any existing session
         if (CurrentSession?.Status == SessionStatus.Running)
@@ -73,7 +79,7 @@ public sealed class SessionManager : ISessionManager
             CancelInternal();
         }
 
-        CurrentSession = Session.CreateFocus(duration);
+        CurrentSession = Session.CreateFocus(duration, goal);
         CurrentSession.Status = SessionStatus.Running;
         CurrentSession.StartedAt = _dateTimeProvider.Now;
 
