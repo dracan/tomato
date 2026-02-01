@@ -2,7 +2,7 @@
 
 A minimal Windows desktop Pomodoro timer.
 
-![Banner](Assets/TomatoBanner.jpg)
+![Banner](Assets/ReadmeImages/TomatoBanner.jpg)
 
 ## Features
 
@@ -19,6 +19,28 @@ A minimal Windows desktop Pomodoro timer.
 - Sound notifications on session completion
 - State persistence across restarts
 - Compact, always-on-top window
+
+## Screenshots
+
+### Non-intrusive always-on-top display
+
+![Idle](Assets/ReadmeImages/Idle.png)
+![Active Pomodoro](Assets/ReadmeImages/ActivePomodoro.png)
+![Short Break](Assets/ReadmeImages/ShortBreak.png)
+![Long Break](Assets/ReadmeImages/LongBreak.png)
+
+### Custom times
+
+![Right-click menu](Assets/ReadmeImages/RightClickMenu.png)
+
+### Pomodoro goal and feedback entry
+
+![Goal entry](Assets/ReadmeImages/Goal.png)
+![Feedback entry](Assets/ReadmeImages/Feedback.png)
+
+### Report generation
+
+![Stats report](Assets/ReadmeImages/Report.png)
 
 ## Download
 
