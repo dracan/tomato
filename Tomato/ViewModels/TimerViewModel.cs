@@ -50,8 +50,19 @@ public partial class TimerViewModel : ObservableObject
             ? CurrentGoal
             : null;
 
-    partial void OnIsRunningChanged(bool value) => OnPropertyChanged(nameof(GoalTooltip));
-    partial void OnIsPausedChanged(bool value) => OnPropertyChanged(nameof(GoalTooltip));
+    public bool CanRestart => IsRunning || IsPaused;
+
+    partial void OnIsRunningChanged(bool value)
+    {
+        OnPropertyChanged(nameof(GoalTooltip));
+        RestartCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnIsPausedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(GoalTooltip));
+        RestartCommand.NotifyCanExecuteChanged();
+    }
     partial void OnCurrentGoalChanged(string? value) => OnPropertyChanged(nameof(GoalTooltip));
 
     public TimerViewModel(ISessionManager sessionManager, IDialogService dialogService, IStatisticsReportService statisticsReportService)
@@ -130,6 +141,12 @@ public partial class TimerViewModel : ObservableObject
     private void Skip()
     {
         _sessionManager.Skip();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRestart))]
+    private void Restart()
+    {
+        _sessionManager.Restart();
     }
 
     [RelayCommand]

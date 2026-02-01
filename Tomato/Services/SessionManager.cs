@@ -188,6 +188,39 @@ public sealed class SessionManager : ISessionManager
         PersistState();
     }
 
+    /// <inheritdoc />
+    public void Restart()
+    {
+        if (CurrentSession == null)
+            return;
+
+        if (CurrentSession.Status != SessionStatus.Running &&
+            CurrentSession.Status != SessionStatus.Paused)
+            return;
+
+        var type = CurrentSession.Type;
+        var duration = CurrentSession.Duration;
+        var goal = CurrentSession.Goal;
+
+        _timerService.Stop();
+
+        CurrentSession = type switch
+        {
+            SessionType.Focus => Session.CreateFocus(duration, goal),
+            SessionType.ShortBreak => Session.CreateShortBreak(duration),
+            SessionType.LongBreak => Session.CreateLongBreak(duration),
+            _ => Session.CreateFocus(duration, goal)
+        };
+
+        CurrentSession.Status = SessionStatus.Running;
+        CurrentSession.StartedAt = _dateTimeProvider.Now;
+
+        _timerService.Start(duration);
+
+        RaiseSessionStateChanged(SessionStatus.NotStarted, SessionStatus.Running);
+        PersistState();
+    }
+
     /// <summary>
     /// Restores state from persistence.
     /// </summary>

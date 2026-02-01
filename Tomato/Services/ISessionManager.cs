@@ -124,4 +124,11 @@ public interface ISessionManager
     /// </summary>
     /// <param name="results">The results text to record.</param>
     void RecordSessionResults(string? results);
+
+    /// <summary>
+    /// Restarts the current session from the beginning.
+    /// The session type, duration, and goal are preserved.
+    /// Only valid when a session is running or paused.
+    /// </summary>
+    void Restart();
 }

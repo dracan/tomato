@@ -23,12 +23,16 @@
             ToolTipService.InitialShowDelay="200">
         <Border.ContextMenu>
             <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                <MenuItem Header="Restart" Command="{Binding RestartCommand}"/>
+                <Separator/>
                 <MenuItem Header="20 minutes" Command="{Binding StartFocusWithDurationCommand}" CommandParameter="20"/>
                 <MenuItem Header="15 minutes" Command="{Binding StartFocusWithDurationCommand}" CommandParameter="15"/>
                 <MenuItem Header="10 minutes" Command="{Binding StartFocusWithDurationCommand}" CommandParameter="10"/>
                 <MenuItem Header="5 minutes" Command="{Binding StartFocusWithDurationCommand}" CommandParameter="5"/>
                 <Separator/>
                 <MenuItem Header="Long Break (15 min)" Command="{Binding StartLongBreakCommand}"/>
+                <Separator/>
+                <MenuItem Header="View Stats" Command="{Binding ViewStatsCommand}"/>
             </ContextMenu>
         </Border.ContextMenu>
         <Border.Background>

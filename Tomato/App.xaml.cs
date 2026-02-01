@@ -16,6 +16,7 @@ public partial class App : Application
     private IDateTimeProvider? _dateTimeProvider;
     private ISessionManager? _sessionManager;
     private IDialogService? _dialogService;
+    private IStatisticsReportService? _statisticsReportService;
 
     // ViewModels
     private TimerViewModel? _timerViewModel;
@@ -47,8 +48,11 @@ public partial class App : Application
         // Create DialogService with MainWindow as owner
         _dialogService = new DialogService(mainWindow);
 
+        // Create StatisticsReportService
+        _statisticsReportService = new StatisticsReportService(_sessionManager, _dateTimeProvider);
+
         // Create ViewModels
-        _timerViewModel = new TimerViewModel(_sessionManager, _dialogService);
+        _timerViewModel = new TimerViewModel(_sessionManager, _dialogService, _statisticsReportService);
         _mainViewModel = new MainViewModel(_timerViewModel);
 
         // Set DataContext and show window

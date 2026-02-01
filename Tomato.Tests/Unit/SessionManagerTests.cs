@@ -683,4 +683,195 @@ public class SessionManagerTests
     }
 
     #endregion
+
+    #region Restart
+
+    [Fact]
+    public void Restart_WhenRunning_ResetsTimeToFullDuration()
+    {
+        // Arrange
+        var duration = TimeSpan.FromMinutes(25);
+        _sut.StartFocus();
+        _timerService.Remaining.Returns(TimeSpan.FromMinutes(10)); // 10 minutes remaining
+
+        // Act
+        _sut.Restart();
+
+        // Assert
+        _sut.CurrentSession!.TimeRemaining.Should().Be(duration);
+    }
+
+    [Fact]
+    public void Restart_PreservesGoal()
+    {
+        // Arrange
+        var goal = "Complete code review";
+        _sut.StartFocus(goal);
+
+        // Act
+        _sut.Restart();
+
+        // Assert
+        _sut.CurrentSession!.Goal.Should().Be(goal);
+    }
+
+    [Fact]
+    public void Restart_PreservesDuration()
+    {
+        // Arrange
+        var duration = TimeSpan.FromMinutes(15);
+        _sut.StartFocus(duration);
+
+        // Act
+        _sut.Restart();
+
+        // Assert
+        _sut.CurrentSession!.Duration.Should().Be(duration);
+    }
+
+    [Fact]
+    public void Restart_PreservesSessionType_Focus()
+    {
+        // Arrange
+        _sut.StartFocus();
+
+        // Act
+        _sut.Restart();
+
+        // Assert
+        _sut.CurrentSession!.Type.Should().Be(SessionType.Focus);
+    }
+
+    [Fact]
+    public void Restart_PreservesSessionType_ShortBreak()
+    {
+        // Arrange
+        _sut.StartBreak();
+
+        // Act
+        _sut.Restart();
+
+        // Assert
+        _sut.CurrentSession!.Type.Should().Be(SessionType.ShortBreak);
+    }
+
+    [Fact]
+    public void Restart_PreservesSessionType_LongBreak()
+    {
+        // Arrange
+        _sut.StartLongBreak();
+
+        // Act
+        _sut.Restart();
+
+        // Assert
+        _sut.CurrentSession!.Type.Should().Be(SessionType.LongBreak);
+    }
+
+    [Fact]
+    public void Restart_StartsTimerWithOriginalDuration()
+    {
+        // Arrange
+        var duration = TimeSpan.FromMinutes(20);
+        _sut.StartFocus(duration);
+        _timerService.ClearReceivedCalls();
+
+        // Act
+        _sut.Restart();
+
+        // Assert
+        _timerService.Received(1).Start(duration);
+    }
+
+    [Fact]
+    public void Restart_WhenPaused_StartsRunning()
+    {
+        // Arrange
+        _sut.StartFocus();
+        _timerService.Remaining.Returns(TimeSpan.FromMinutes(20));
+        _sut.Pause();
+
+        // Act
+        _sut.Restart();
+
+        // Assert
+        _sut.CurrentSession!.Status.Should().Be(SessionStatus.Running);
+    }
+
+    [Fact]
+    public void Restart_WithNoSession_DoesNothing()
+    {
+        // Arrange - no session started
+
+        // Act
+        _sut.Restart();
+
+        // Assert
+        _sut.CurrentSession.Should().BeNull();
+        _timerService.DidNotReceive().Stop();
+    }
+
+    [Fact]
+    public void Restart_WhenCompleted_DoesNothing()
+    {
+        // Arrange
+        _sut.StartFocus();
+        _timerService.Completed += Raise.Event(); // Complete the session
+
+        var completedSession = _sut.CurrentSession;
+
+        // Act
+        _sut.Restart();
+
+        // Assert - session should still be the completed one
+        _sut.CurrentSession.Should().BeSameAs(completedSession);
+        _sut.CurrentSession!.Status.Should().Be(SessionStatus.Completed);
+    }
+
+    [Fact]
+    public void Restart_RaisesSessionStateChangedEvent()
+    {
+        // Arrange
+        _sut.StartFocus();
+        SessionStateChangedEventArgs? eventArgs = null;
+        _sut.SessionStateChanged += (_, e) => eventArgs = e;
+
+        // Act
+        _sut.Restart();
+
+        // Assert
+        eventArgs.Should().NotBeNull();
+        eventArgs!.PreviousStatus.Should().Be(SessionStatus.NotStarted);
+        eventArgs.NewStatus.Should().Be(SessionStatus.Running);
+    }
+
+    [Fact]
+    public void Restart_PersistsState()
+    {
+        // Arrange
+        _sut.StartFocus();
+        _persistenceService.ClearReceivedCalls();
+
+        // Act
+        _sut.Restart();
+
+        // Assert
+        _persistenceService.Received(1).SaveAsync(Arg.Any<AppState>());
+    }
+
+    [Fact]
+    public void Restart_DoesNotIncrementStatistics()
+    {
+        // Arrange
+        _sut.StartFocus();
+        var initialCount = _sut.TodayStatistics.FocusSessionsCompleted;
+
+        // Act
+        _sut.Restart();
+
+        // Assert
+        _sut.TodayStatistics.FocusSessionsCompleted.Should().Be(initialCount);
+    }
+
+    #endregion
 }

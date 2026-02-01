@@ -553,4 +553,60 @@ public class TimerViewModelTests
     }
 
     #endregion
+
+    #region Restart Command
+
+    [Fact]
+    public void RestartCommand_CallsSessionManagerRestart()
+    {
+        // Act
+        _sut.RestartCommand.Execute(null);
+
+        // Assert
+        _sessionManager.Received(1).Restart();
+    }
+
+    [Fact]
+    public void CanRestart_ReturnsTrueWhenRunning()
+    {
+        // Arrange
+        var session = Session.CreateFocus();
+        session.Status = SessionStatus.Running;
+        _sessionManager.CurrentSession.Returns(session);
+
+        // Act
+        _sessionManager.SessionStateChanged += Raise.EventWith(
+            new SessionStateChangedEventArgs(session, SessionStatus.NotStarted, SessionStatus.Running));
+
+        // Assert
+        _sut.CanRestart.Should().BeTrue();
+        _sut.RestartCommand.CanExecute(null).Should().BeTrue();
+    }
+
+    [Fact]
+    public void CanRestart_ReturnsTrueWhenPaused()
+    {
+        // Arrange
+        var session = Session.CreateFocus();
+        session.Status = SessionStatus.Paused;
+        _sessionManager.CurrentSession.Returns(session);
+
+        // Act
+        _sessionManager.SessionStateChanged += Raise.EventWith(
+            new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Paused));
+
+        // Assert
+        _sut.CanRestart.Should().BeTrue();
+        _sut.RestartCommand.CanExecute(null).Should().BeTrue();
+    }
+
+    [Fact]
+    public void CanRestart_ReturnsFalseWhenIdle()
+    {
+        // Assert - initial state
+        _sut.CanRestart.Should().BeFalse();
+        _sut.RestartCommand.CanExecute(null).Should().BeFalse();
+    }
+
+    #endregion
 }
