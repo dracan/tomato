@@ -85,9 +85,14 @@ public interface ISessionManager
     void StartFocus(TimeSpan duration, string? goal);
 
     /// <summary>
-    /// Starts a break session (short or long based on cycle).
+    /// Starts a short break session (5 minutes).
     /// </summary>
     void StartBreak();
+
+    /// <summary>
+    /// Starts a long break session (15 minutes).
+    /// </summary>
+    void StartLongBreak();
 
     /// <summary>
     /// Pauses the current session.

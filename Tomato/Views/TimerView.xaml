@@ -27,6 +27,8 @@
                 <MenuItem Header="15 minutes" Command="{Binding StartFocusWithDurationCommand}" CommandParameter="15"/>
                 <MenuItem Header="10 minutes" Command="{Binding StartFocusWithDurationCommand}" CommandParameter="10"/>
                 <MenuItem Header="5 minutes" Command="{Binding StartFocusWithDurationCommand}" CommandParameter="5"/>
+                <Separator/>
+                <MenuItem Header="Long Break (15 min)" Command="{Binding StartLongBreakCommand}"/>
             </ContextMenu>
         </Border.ContextMenu>
         <Border.Background>

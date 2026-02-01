@@ -192,7 +192,7 @@ public class SessionFlowTests : IDisposable
     }
 
     [Fact]
-    public void FullCycle_FourFocusSessions_TriggerLongBreak()
+    public void FullCycle_FourFocusSessions_ExplicitLongBreak_ResetsCycle()
     {
         // Complete 4 focus sessions
         for (int i = 0; i < 4; i++)
@@ -206,8 +206,8 @@ public class SessionFlowTests : IDisposable
         _sessionManager.Cycle.CompletedFocusSessions.Should().Be(4);
         _sessionManager.TodayStatistics.FocusSessionsCompleted.Should().Be(4);
 
-        // Start break - should be long break
-        _sessionManager.StartBreak();
+        // Start explicit long break (no longer automatic)
+        _sessionManager.StartLongBreak();
         _sessionManager.CurrentSession!.Type.Should().Be(SessionType.LongBreak);
         _sessionManager.CurrentSession.Duration.Should().Be(TimeSpan.FromMinutes(15));
 

@@ -428,7 +428,7 @@ public class SessionManagerTests
     }
 
     [Fact]
-    public void StartBreak_CreatesLongBreakSession_WhenCycleComplete()
+    public void StartBreak_AlwaysCreatesShortBreak()
     {
         // Arrange - complete a cycle (4 focus sessions)
         for (int i = 0; i < 4; i++)
@@ -440,27 +440,20 @@ public class SessionManagerTests
         // Act
         _sut.StartBreak();
 
-        // Assert
+        // Assert - should still be short break (cycle no longer affects break type)
         _sut.CurrentSession.Should().NotBeNull();
-        _sut.CurrentSession!.Type.Should().Be(SessionType.LongBreak);
+        _sut.CurrentSession!.Type.Should().Be(SessionType.ShortBreak);
     }
 
     [Fact]
-    public void StartBreak_StartsTimerWith15Minutes_ForLongBreak()
+    public void StartLongBreak_CreatesLongBreakSession()
     {
-        // Arrange - complete a cycle
-        for (int i = 0; i < 4; i++)
-        {
-            _sut.StartFocus();
-            _timerService.Completed += Raise.Event();
-        }
-
-        _timerService.ClearReceivedCalls();
-
         // Act
-        _sut.StartBreak();
+        _sut.StartLongBreak();
 
         // Assert
+        _sut.CurrentSession.Should().NotBeNull();
+        _sut.CurrentSession!.Type.Should().Be(SessionType.LongBreak);
         _timerService.Received(1).Start(TimeSpan.FromMinutes(15));
     }
 
@@ -515,8 +508,8 @@ public class SessionManagerTests
         }
         _sut.Cycle.CompletedFocusSessions.Should().Be(4);
 
-        // Start and complete long break
-        _sut.StartBreak();
+        // Start and complete long break (explicitly)
+        _sut.StartLongBreak();
 
         // Act
         _timerService.Completed += Raise.Event();

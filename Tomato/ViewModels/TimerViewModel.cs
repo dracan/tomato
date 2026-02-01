@@ -100,6 +100,12 @@ public partial class TimerViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void StartLongBreak()
+    {
+        _sessionManager.StartLongBreak();
+    }
+
+    [RelayCommand]
     private void Pause()
     {
         _sessionManager.Pause();

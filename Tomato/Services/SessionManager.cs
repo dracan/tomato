@@ -98,11 +98,26 @@ public sealed class SessionManager : ISessionManager
             CancelInternal();
         }
 
-        // Determine break type based on cycle
-        CurrentSession = Cycle.IsCycleComplete
-            ? Session.CreateLongBreak()
-            : Session.CreateShortBreak();
+        CurrentSession = Session.CreateShortBreak();
+        CurrentSession.Status = SessionStatus.Running;
+        CurrentSession.StartedAt = _dateTimeProvider.Now;
 
+        _timerService.Start(CurrentSession.Duration);
+
+        RaiseSessionStateChanged(SessionStatus.NotStarted, SessionStatus.Running);
+        PersistState();
+    }
+
+    /// <inheritdoc />
+    public void StartLongBreak()
+    {
+        // Cancel any existing session
+        if (CurrentSession?.Status == SessionStatus.Running)
+        {
+            CancelInternal();
+        }
+
+        CurrentSession = Session.CreateLongBreak();
         CurrentSession.Status = SessionStatus.Running;
         CurrentSession.StartedAt = _dateTimeProvider.Now;
 
