@@ -9,7 +9,8 @@ public class TimerServiceTests : IDisposable
 
     public TimerServiceTests()
     {
-        _sut = new TimerService();
+        // Use ThreadPoolIntervalTimer for tests since DispatcherTimer requires WPF message loop
+        _sut = new TimerService(new ThreadPoolIntervalTimer());
     }
 
     public void Dispose()

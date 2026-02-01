@@ -24,7 +24,7 @@ public class TimerTickEventArgs : EventArgs
 
 /// <summary>
 /// Provides high-accuracy timer functionality for Pomodoro sessions.
-/// Uses System.Timers.Timer with Stopwatch for drift correction.
+/// Uses DispatcherTimer for UI thread execution with Stopwatch for drift correction.
 /// </summary>
 public interface ITimerService : IDisposable
 {

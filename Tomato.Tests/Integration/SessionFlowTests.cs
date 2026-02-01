@@ -16,7 +16,8 @@ public class SessionFlowTests : IDisposable
     public SessionFlowTests()
     {
         // Real timer service for integration testing
-        _timerService = new TimerService();
+        // Use ThreadPoolIntervalTimer since DispatcherTimer requires WPF message loop
+        _timerService = new TimerService(new ThreadPoolIntervalTimer());
 
         // Mock external dependencies
         _notificationService = Substitute.For<INotificationService>();

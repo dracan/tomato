@@ -1,15 +1,87 @@
 using System.Diagnostics;
-using System.Timers;
-using Timer = System.Timers.Timer;
+using System.Windows.Threading;
 
 namespace Tomato.Services;
 
 /// <summary>
-/// High-accuracy timer service using System.Timers.Timer with Stopwatch for drift correction.
+/// Abstraction for interval-based timers to allow testability.
+/// </summary>
+public interface IIntervalTimer : IDisposable
+{
+    /// <summary>
+    /// Occurs when the timer interval elapses.
+    /// </summary>
+    event EventHandler? Elapsed;
+
+    /// <summary>
+    /// Starts the timer.
+    /// </summary>
+    void Start();
+
+    /// <summary>
+    /// Stops the timer.
+    /// </summary>
+    void Stop();
+}
+
+/// <summary>
+/// DispatcherTimer-based interval timer for WPF UI thread execution.
+/// </summary>
+internal sealed class DispatcherIntervalTimer : IIntervalTimer
+{
+    private readonly DispatcherTimer _timer;
+
+    public event EventHandler? Elapsed;
+
+    public DispatcherIntervalTimer()
+    {
+        _timer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(250)
+        };
+        _timer.Tick += (s, e) => Elapsed?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void Start() => _timer.Start();
+    public void Stop() => _timer.Stop();
+    public void Dispose() => _timer.Stop();
+}
+
+/// <summary>
+/// System.Timers.Timer-based interval timer for testing (fires on thread pool).
+/// </summary>
+public sealed class ThreadPoolIntervalTimer : IIntervalTimer
+{
+    private readonly System.Timers.Timer _timer;
+
+    public event EventHandler? Elapsed;
+
+    public ThreadPoolIntervalTimer()
+    {
+        _timer = new System.Timers.Timer(250)
+        {
+            AutoReset = true
+        };
+        _timer.Elapsed += (s, e) => Elapsed?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void Start() => _timer.Start();
+    public void Stop() => _timer.Stop();
+
+    public void Dispose()
+    {
+        _timer.Stop();
+        _timer.Dispose();
+    }
+}
+
+/// <summary>
+/// High-accuracy timer service using DispatcherTimer with Stopwatch for drift correction.
+/// DispatcherTimer fires on the UI thread, ensuring smooth display updates.
 /// </summary>
 public sealed class TimerService : ITimerService
 {
-    private readonly Timer _timer;
+    private readonly IIntervalTimer _timer;
     private readonly Stopwatch _stopwatch;
     private TimeSpan _duration;
     private bool _disposed;
@@ -26,11 +98,21 @@ public sealed class TimerService : ITimerService
     /// <inheritdoc />
     public TimeSpan Remaining { get; private set; }
 
-    public TimerService()
+    /// <summary>
+    /// Creates a new TimerService using DispatcherTimer for UI thread execution.
+    /// </summary>
+    public TimerService() : this(new DispatcherIntervalTimer())
     {
-        _timer = new Timer(1000); // 1 second interval
-        _timer.Elapsed += OnTimerElapsed;
-        _timer.AutoReset = true;
+    }
+
+    /// <summary>
+    /// Creates a new TimerService with a custom interval timer (for testing).
+    /// </summary>
+    /// <param name="timer">The interval timer to use.</param>
+    public TimerService(IIntervalTimer timer)
+    {
+        _timer = timer;
+        _timer.Elapsed += OnTimerTick;
         _stopwatch = new Stopwatch();
     }
 
@@ -78,7 +160,7 @@ public sealed class TimerService : ITimerService
         IsRunning = false;
     }
 
-    private void OnTimerElapsed(object? sender, ElapsedEventArgs e)
+    private void OnTimerTick(object? sender, EventArgs e)
     {
         var elapsed = _stopwatch.Elapsed;
         Remaining = _duration - elapsed;
@@ -101,7 +183,7 @@ public sealed class TimerService : ITimerService
         if (_disposed) return;
         _disposed = true;
         _timer.Stop();
-        _timer.Elapsed -= OnTimerElapsed;
+        _timer.Elapsed -= OnTimerTick;
         _timer.Dispose();
     }
 }
