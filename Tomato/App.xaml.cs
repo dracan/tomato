@@ -1,6 +1,8 @@
-﻿using System.Windows;
+﻿using System.Linq;
+using System.Windows;
 using Tomato.Services;
 using Tomato.ViewModels;
+using Tomato.Views;
 
 namespace Tomato;
 
@@ -17,6 +19,8 @@ public partial class App : Application
     private ISessionManager? _sessionManager;
     private IDialogService? _dialogService;
     private IStatisticsReportService? _statisticsReportService;
+    private ISlackConfigurationService? _slackConfigService;
+    private ISlackService? _slackService;
 
     // ViewModels
     private TimerViewModel? _timerViewModel;
@@ -25,6 +29,10 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // Check for --setup-slack argument
+        var args = e.Args;
+        var isSlackSetup = args.Contains("--setup-slack");
 
         // Create services
         _dateTimeProvider = new DateTimeProvider();
@@ -41,6 +49,21 @@ public partial class App : Application
 
         // Restore state from disk
         await ((SessionManager)_sessionManager).RestoreStateAsync();
+
+        // Create Slack services
+        _slackConfigService = new SlackConfigurationService();
+        _slackService = new SlackService(_slackConfigService, _sessionManager);
+
+        // Handle --setup-slack argument
+        if (isSlackSetup)
+        {
+            var setupDialog = new SlackSetupDialog(_slackService);
+            setupDialog.ShowDialog();
+
+            // Exit after setup dialog closes
+            Shutdown();
+            return;
+        }
 
         // Create and show main window first (needed for DialogService owner)
         var mainWindow = new MainWindow();
@@ -65,6 +88,7 @@ public partial class App : Application
         // Dispose services
         (_timerService as IDisposable)?.Dispose();
         (_notificationService as IDisposable)?.Dispose();
+        (_slackService as IDisposable)?.Dispose();
 
         base.OnExit(e);
     }

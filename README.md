@@ -19,6 +19,7 @@ A minimal Windows desktop Pomodoro timer.
 - Sound notifications on session completion
 - State persistence across restarts
 - Compact, always-on-top window
+- Slack integration - automatically sets status and enables Do Not Disturb during focus sessions
 
 ## Screenshots
 
@@ -41,6 +42,28 @@ A minimal Windows desktop Pomodoro timer.
 ### Report generation
 
 ![Stats report](Assets/ReadmeImages/Report.png)
+
+## Slack Integration
+
+Tomato can automatically update your Slack status and enable Do Not Disturb when you start a focus session.
+
+### Setup
+
+1. Create a Slack App at [api.slack.com/apps](https://api.slack.com/apps)
+2. Add the following OAuth scopes under "User Token Scopes":
+   - `users.profile:write` - to set your status
+   - `dnd:write` - to enable Do Not Disturb
+3. Install the app to your workspace and copy the "User OAuth Token" (starts with `xoxp-`)
+4. Run `Tomato.exe --setup-slack` and paste your token
+5. Click "Test Connection" to verify it works, then "Save"
+
+### Behavior
+
+- **Focus session starts**: Status changes to 🍅 "Focus time" and DND is enabled
+- **Focus session ends**: Status is cleared and DND is disabled
+- **Breaks**: No changes to Slack status
+
+Your token is stored encrypted using Windows DPAPI at `%LOCALAPPDATA%\Tomato\slack.json`.
 
 ## Download
 
