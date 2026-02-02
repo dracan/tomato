@@ -17,6 +17,7 @@
             <converters:PauseButtonVisibilityConverter x:Key="PauseButtonVisibilityConverter"/>
             <converters:StopButtonVisibilityConverter x:Key="StopButtonVisibilityConverter"/>
             <converters:NullToCollapsedConverter x:Key="NullToCollapsedConverter"/>
+            <converters:BoolToStarConverter x:Key="BoolToStarConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

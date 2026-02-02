@@ -175,9 +175,9 @@ public partial class TimerViewModel : ObservableObject
     private async Task ShowResultsDialogAsync()
     {
         var result = await _dialogService.ShowResultsDialogAsync(CurrentGoal);
-        if (result.Confirmed && !string.IsNullOrWhiteSpace(result.Results))
+        if (result.Confirmed && (!string.IsNullOrWhiteSpace(result.Results) || result.Rating.HasValue))
         {
-            _sessionManager.RecordSessionResults(result.Results);
+            _sessionManager.RecordSessionResults(result.Results, result.Rating);
         }
 
         // Clear the goal after the session is complete

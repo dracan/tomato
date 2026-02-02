@@ -8,7 +8,7 @@
         d:DataContext="{d:DesignInstance Type=vm:ResultsDialogViewModel}"
         Title="Session Complete"
         Width="350"
-        Height="220"
+        Height="270"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="{StaticResource BackgroundBrush}"
@@ -21,6 +21,7 @@
             BorderThickness="1">
         <Grid Margin="20">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
@@ -44,8 +45,35 @@
                        Margin="0,0,0,12"
                        Visibility="{Binding Goal, Converter={StaticResource NullToCollapsedConverter}}"/>
 
+            <!-- Star Rating -->
+            <StackPanel Grid.Row="2"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        Margin="0,0,0,12">
+                <Button Style="{StaticResource StarButtonStyle}"
+                        Content="{Binding IsStar1Selected, Converter={StaticResource BoolToStarConverter}}"
+                        Command="{Binding SetRatingCommand}"
+                        CommandParameter="1"/>
+                <Button Style="{StaticResource StarButtonStyle}"
+                        Content="{Binding IsStar2Selected, Converter={StaticResource BoolToStarConverter}}"
+                        Command="{Binding SetRatingCommand}"
+                        CommandParameter="2"/>
+                <Button Style="{StaticResource StarButtonStyle}"
+                        Content="{Binding IsStar3Selected, Converter={StaticResource BoolToStarConverter}}"
+                        Command="{Binding SetRatingCommand}"
+                        CommandParameter="3"/>
+                <Button Style="{StaticResource StarButtonStyle}"
+                        Content="{Binding IsStar4Selected, Converter={StaticResource BoolToStarConverter}}"
+                        Command="{Binding SetRatingCommand}"
+                        CommandParameter="4"/>
+                <Button Style="{StaticResource StarButtonStyle}"
+                        Content="{Binding IsStar5Selected, Converter={StaticResource BoolToStarConverter}}"
+                        Command="{Binding SetRatingCommand}"
+                        CommandParameter="5"/>
+            </StackPanel>
+
             <!-- Results TextBox -->
-            <TextBox Grid.Row="2"
+            <TextBox Grid.Row="3"
                      Text="{Binding Results, UpdateSourceTrigger=PropertyChanged}"
                      Background="{StaticResource SurfaceBrush}"
                      Foreground="{StaticResource TextPrimaryBrush}"
@@ -59,7 +87,7 @@
                      x:Name="ResultsTextBox"/>
 
             <!-- Buttons -->
-            <StackPanel Grid.Row="3"
+            <StackPanel Grid.Row="4"
                         Orientation="Horizontal"
                         HorizontalAlignment="Right"
                         Margin="0,16,0,0">

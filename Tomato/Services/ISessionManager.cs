@@ -123,7 +123,8 @@ public interface ISessionManager
     /// Records the results of the most recently completed session.
     /// </summary>
     /// <param name="results">The results text to record.</param>
-    void RecordSessionResults(string? results);
+    /// <param name="rating">The optional 1-5 star rating.</param>
+    void RecordSessionResults(string? results, int? rating);
 
     /// <summary>
     /// Restarts the current session from the beginning.

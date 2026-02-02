@@ -74,6 +74,7 @@ public sealed class AppState
     {
         public string? Goal { get; set; }
         public string? Results { get; set; }
+        public int? Rating { get; set; }
         public TimeSpan Duration { get; set; }
         public DateTime StartedAt { get; set; }
         public DateTime CompletedAt { get; set; }
@@ -125,6 +126,7 @@ public sealed class AppState
                     {
                         Goal = r.Goal,
                         Results = r.Results,
+                        Rating = r.Rating,
                         Duration = r.Duration,
                         StartedAt = r.StartedAt,
                         CompletedAt = r.CompletedAt
@@ -162,6 +164,7 @@ public sealed class AppState
                         {
                             Goal = r.Goal,
                             Results = r.Results,
+                            Rating = r.Rating,
                             Duration = r.Duration,
                             StartedAt = r.StartedAt,
                             CompletedAt = r.CompletedAt
@@ -186,6 +189,7 @@ public sealed class AppState
                     {
                         Goal = r.Goal,
                         Results = r.Results,
+                        Rating = r.Rating,
                         Duration = r.Duration,
                         StartedAt = r.StartedAt,
                         CompletedAt = r.CompletedAt
@@ -255,6 +259,7 @@ public sealed class AppState
             {
                 Goal = recordState.Goal,
                 Results = recordState.Results,
+                Rating = recordState.Rating,
                 Duration = recordState.Duration,
                 StartedAt = recordState.StartedAt,
                 CompletedAt = recordState.CompletedAt
@@ -288,6 +293,7 @@ public sealed class AppState
                 {
                     Goal = recordState.Goal,
                     Results = recordState.Results,
+                    Rating = recordState.Rating,
                     Duration = recordState.Duration,
                     StartedAt = recordState.StartedAt,
                     CompletedAt = recordState.CompletedAt

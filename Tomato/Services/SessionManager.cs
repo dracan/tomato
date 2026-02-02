@@ -179,12 +179,13 @@ public sealed class SessionManager : ISessionManager
     }
 
     /// <inheritdoc />
-    public void RecordSessionResults(string? results)
+    public void RecordSessionResults(string? results, int? rating)
     {
         if (_lastCompletedSessionRecord == null)
             return;
 
         _lastCompletedSessionRecord.Results = results;
+        _lastCompletedSessionRecord.Rating = rating;
         PersistState();
     }
 

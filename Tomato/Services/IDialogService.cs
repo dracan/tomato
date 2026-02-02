@@ -12,7 +12,8 @@ public record GoalDialogResult(bool Confirmed, string? Goal);
 /// </summary>
 /// <param name="Confirmed">Whether the user confirmed (true) or skipped (false).</param>
 /// <param name="Results">The results entered by the user, if confirmed.</param>
-public record ResultsDialogResult(bool Confirmed, string? Results);
+/// <param name="Rating">The optional 1-5 star rating, if provided.</param>
+public record ResultsDialogResult(bool Confirmed, string? Results, int? Rating);
 
 /// <summary>
 /// Service for showing dialogs to the user.

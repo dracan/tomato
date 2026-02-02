@@ -48,7 +48,8 @@ public sealed class DialogService : IDialogService
 
         var confirmed = viewModel.DialogResult == true;
         var results = confirmed ? viewModel.Results : null;
+        var rating = confirmed ? viewModel.Rating : null;
 
-        return Task.FromResult(new ResultsDialogResult(confirmed, results));
+        return Task.FromResult(new ResultsDialogResult(confirmed, results, rating));
     }
 }

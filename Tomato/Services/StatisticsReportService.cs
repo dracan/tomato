@@ -350,8 +350,20 @@ public sealed class StatisticsReportService : IStatisticsReportService
         }
 
         .session-goal strong,
-        .session-results strong {
+        .session-results strong,
+        .session-rating strong {
             color: var(--text-primary);
+        }
+
+        .session-rating {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .stars {
+            color: #FFD700;
+            letter-spacing: 2px;
         }
 
         .expand-btn {
@@ -499,6 +511,7 @@ public sealed class StatisticsReportService : IStatisticsReportService
                 {
                     sb.AppendLine("                                <div class=\"history-session-item\">");
                     sb.AppendLine($"                                    <div class=\"session-time\">{record.StartedAt:h:mm tt} - {record.CompletedAt:h:mm tt} ({FormatDuration(record.Duration)})</div>");
+                    sb.AppendLine($"                                    <div class=\"session-rating\"><strong>Rating:</strong> {FormatRating(record.Rating)}</div>");
                     sb.AppendLine($"                                    <div class=\"session-goal\"><strong>Goal:</strong> {(string.IsNullOrWhiteSpace(record.Goal) ? "No goal set" : HtmlEncode(record.Goal))}</div>");
                     sb.AppendLine($"                                    <div class=\"session-results\"><strong>Results:</strong> {(string.IsNullOrWhiteSpace(record.Results) ? "No results recorded" : HtmlEncode(record.Results))}</div>");
                     sb.AppendLine("                                </div>");
@@ -552,6 +565,7 @@ public sealed class StatisticsReportService : IStatisticsReportService
         {
             sb.AppendLine("                <div class=\"session-card\">");
             sb.AppendLine($"                    <div class=\"session-time\">{record.StartedAt:h:mm tt} - {record.CompletedAt:h:mm tt} ({FormatDuration(record.Duration)})</div>");
+            sb.AppendLine($"                    <div class=\"session-rating\"><strong>Rating:</strong> {FormatRating(record.Rating)}</div>");
             sb.AppendLine($"                    <div class=\"session-goal\"><strong>Goal:</strong> {(string.IsNullOrWhiteSpace(record.Goal) ? "No goal set" : HtmlEncode(record.Goal))}</div>");
             sb.AppendLine($"                    <div class=\"session-results\"><strong>Results:</strong> {(string.IsNullOrWhiteSpace(record.Results) ? "No results recorded" : HtmlEncode(record.Results))}</div>");
             sb.AppendLine("                </div>");
@@ -608,6 +622,18 @@ public sealed class StatisticsReportService : IStatisticsReportService
         }
 
         return $"{minutes}m";
+    }
+
+    private static string FormatRating(int? rating)
+    {
+        if (!rating.HasValue)
+        {
+            return "No rating";
+        }
+
+        var filled = new string('\u2605', rating.Value);  // ★
+        var empty = new string('\u2606', 5 - rating.Value); // ☆
+        return $"<span class=\"stars\">{filled}{empty}</span>";
     }
 
     private static void OpenInBrowser(string path)

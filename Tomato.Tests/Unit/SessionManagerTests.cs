@@ -622,7 +622,7 @@ public class SessionManagerTests
         _timerService.Completed += Raise.Event();
 
         // Act
-        _sut.RecordSessionResults("Completed 5 tests");
+        _sut.RecordSessionResults("Completed 5 tests", null);
 
         // Assert
         _sut.TodayStatistics.SessionRecords[0].Results.Should().Be("Completed 5 tests");
@@ -637,7 +637,7 @@ public class SessionManagerTests
         _persistenceService.ClearReceivedCalls();
 
         // Act
-        _sut.RecordSessionResults("Completed 5 tests");
+        _sut.RecordSessionResults("Completed 5 tests", null);
 
         // Assert
         _persistenceService.Received(1).SaveAsync(Arg.Any<AppState>());
@@ -647,10 +647,39 @@ public class SessionManagerTests
     public void RecordSessionResults_WithNoCompletedSession_DoesNothing()
     {
         // Act - no session has been completed yet
-        _sut.RecordSessionResults("Some results");
+        _sut.RecordSessionResults("Some results", null);
 
         // Assert - should not throw or persist
         _persistenceService.DidNotReceive().SaveAsync(Arg.Any<AppState>());
+    }
+
+    [Fact]
+    public void RecordSessionResults_WithRating_StoresRating()
+    {
+        // Arrange
+        _sut.StartFocus("Write tests");
+        _timerService.Completed += Raise.Event();
+
+        // Act
+        _sut.RecordSessionResults("Great session", 4);
+
+        // Assert
+        _sut.TodayStatistics.SessionRecords[0].Rating.Should().Be(4);
+    }
+
+    [Fact]
+    public void RecordSessionResults_WithOnlyRating_StoresRating()
+    {
+        // Arrange
+        _sut.StartFocus("Write tests");
+        _timerService.Completed += Raise.Event();
+
+        // Act
+        _sut.RecordSessionResults(null, 5);
+
+        // Assert
+        _sut.TodayStatistics.SessionRecords[0].Results.Should().BeNull();
+        _sut.TodayStatistics.SessionRecords[0].Rating.Should().Be(5);
     }
 
     [Fact]

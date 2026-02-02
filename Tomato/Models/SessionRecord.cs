@@ -16,6 +16,11 @@ public sealed class SessionRecord
     public string? Results { get; set; }
 
     /// <summary>
+    /// Gets or sets the optional 1-5 star rating for this session.
+    /// </summary>
+    public int? Rating { get; set; }
+
+    /// <summary>
     /// Gets the duration of this session.
     /// </summary>
     public TimeSpan Duration { get; init; }
