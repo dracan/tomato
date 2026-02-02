@@ -23,6 +23,7 @@ public partial class App : Application
     private ISlackService? _slackService;
     private ILuxaforConfigurationService? _luxaforConfigService;
     private ILuxaforService? _luxaforService;
+    private IUpdateCheckService? _updateCheckService;
 
     // ViewModels
     private TimerViewModel? _timerViewModel;
@@ -99,6 +100,31 @@ public partial class App : Application
         // Set DataContext and show window
         mainWindow.DataContext = _mainViewModel;
         mainWindow.Show();
+
+        // Check for updates in the background after window is shown
+        _updateCheckService = new UpdateCheckService();
+        _ = CheckForUpdatesAsync();
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        try
+        {
+            var result = await _updateCheckService!.CheckForUpdateAsync();
+            if (result != null)
+            {
+                // Dispatch to UI thread to show dialog
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    var dialog = new UpdateAvailableDialog(result);
+                    dialog.ShowDialog();
+                });
+            }
+        }
+        catch
+        {
+            // Silent failure - don't interrupt app startup
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -108,6 +134,7 @@ public partial class App : Application
         (_notificationService as IDisposable)?.Dispose();
         (_slackService as IDisposable)?.Dispose();
         (_luxaforService as IDisposable)?.Dispose();
+        _updateCheckService?.Dispose();
 
         base.OnExit(e);
     }

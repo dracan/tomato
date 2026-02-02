@@ -1,0 +1,76 @@
+<Window x:Class="Tomato.Views.UpdateAvailableDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Update Available"
+        Width="380"
+        Height="220"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Background="{StaticResource BackgroundBrush}"
+        WindowStyle="None"
+        AllowsTransparency="True">
+
+    <Border CornerRadius="8"
+            Background="{StaticResource BackgroundBrush}"
+            BorderBrush="{StaticResource SurfaceBrush}"
+            BorderThickness="1">
+        <Grid Margin="24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Title -->
+            <TextBlock Grid.Row="0"
+                       Text="Update Available"
+                       Foreground="{StaticResource TextPrimaryBrush}"
+                       FontSize="18"
+                       FontWeight="SemiBold"
+                       Margin="0,0,0,16"/>
+
+            <!-- Current Version -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                <TextBlock Text="Current version: "
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="14"/>
+                <TextBlock x:Name="CurrentVersionText"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           FontSize="14"/>
+            </StackPanel>
+
+            <!-- New Version -->
+            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,16">
+                <TextBlock Text="New version: "
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="14"/>
+                <TextBlock x:Name="LatestVersionText"
+                           Foreground="{StaticResource FocusBrush}"
+                           FontSize="14"
+                           FontWeight="SemiBold"/>
+            </StackPanel>
+
+            <!-- Release Link -->
+            <TextBlock Grid.Row="3" VerticalAlignment="Top">
+                <Hyperlink x:Name="ReleaseLink"
+                           Click="OnReleaseLinkClick"
+                           Foreground="{StaticResource FocusBrush}">
+                    View release on GitHub
+                </Hyperlink>
+            </TextBlock>
+
+            <!-- Close Button -->
+            <Button Grid.Row="4"
+                    Content="Close"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Padding="16,8"
+                    HorizontalAlignment="Right"
+                    Click="OnClose"/>
+        </Grid>
+    </Border>
+</Window>
