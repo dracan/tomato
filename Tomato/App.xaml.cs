@@ -21,6 +21,8 @@ public partial class App : Application
     private IStatisticsReportService? _statisticsReportService;
     private ISlackConfigurationService? _slackConfigService;
     private ISlackService? _slackService;
+    private ILuxaforConfigurationService? _luxaforConfigService;
+    private ILuxaforService? _luxaforService;
 
     // ViewModels
     private TimerViewModel? _timerViewModel;
@@ -30,9 +32,10 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        // Check for --setup-slack argument
+        // Check for setup arguments
         var args = e.Args;
         var isSlackSetup = args.Contains("--setup-slack");
+        var isLuxaforSetup = args.Contains("--setup-luxafor");
 
         // Create services
         _dateTimeProvider = new DateTimeProvider();
@@ -54,10 +57,25 @@ public partial class App : Application
         _slackConfigService = new SlackConfigurationService();
         _slackService = new SlackService(_slackConfigService, _sessionManager);
 
+        // Create Luxafor services
+        _luxaforConfigService = new LuxaforConfigurationService();
+        _luxaforService = new LuxaforService(_luxaforConfigService, _sessionManager);
+
         // Handle --setup-slack argument
         if (isSlackSetup)
         {
             var setupDialog = new SlackSetupDialog(_slackService);
+            setupDialog.ShowDialog();
+
+            // Exit after setup dialog closes
+            Shutdown();
+            return;
+        }
+
+        // Handle --setup-luxafor argument
+        if (isLuxaforSetup)
+        {
+            var setupDialog = new LuxaforSetupDialog(_luxaforService);
             setupDialog.ShowDialog();
 
             // Exit after setup dialog closes
@@ -89,6 +107,7 @@ public partial class App : Application
         (_timerService as IDisposable)?.Dispose();
         (_notificationService as IDisposable)?.Dispose();
         (_slackService as IDisposable)?.Dispose();
+        (_luxaforService as IDisposable)?.Dispose();
 
         base.OnExit(e);
     }
