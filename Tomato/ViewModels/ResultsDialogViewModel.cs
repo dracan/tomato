@@ -1,6 +1,8 @@
+using System.Text;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System.Windows;
+using Tomato.Models;
 
 namespace Tomato.ViewModels;
 
@@ -17,6 +19,45 @@ public partial class ResultsDialogViewModel : ObservableObject
 
     [ObservableProperty]
     private int? _rating;
+
+    /// <summary>
+    /// Gets or sets the captured todos from the session.
+    /// </summary>
+    public IReadOnlyList<TodoItem>? CapturedTodos { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether this dialog is in "todos only" mode (no feedback section).
+    /// </summary>
+    public bool IsTodosOnlyMode { get; set; }
+
+    /// <summary>
+    /// Gets whether the feedback section should be shown.
+    /// </summary>
+    public bool ShowFeedbackSection => !IsTodosOnlyMode;
+
+    /// <summary>
+    /// Gets whether there are any captured todos.
+    /// </summary>
+    public bool HasCapturedTodos => CapturedTodos is { Count: > 0 };
+
+    /// <summary>
+    /// Gets the captured todos formatted as markdown checkboxes.
+    /// </summary>
+    public string CapturedTodosText
+    {
+        get
+        {
+            if (CapturedTodos is not { Count: > 0 })
+                return string.Empty;
+
+            var sb = new StringBuilder();
+            foreach (var todo in CapturedTodos)
+            {
+                sb.AppendLine($"- [ ] {todo.Text}");
+            }
+            return sb.ToString().TrimEnd();
+        }
+    }
 
     /// <summary>
     /// Gets or sets the dialog result (true = confirmed, false = cancelled).
@@ -70,6 +111,15 @@ public partial class ResultsDialogViewModel : ObservableObject
 
         // Toggle off if clicking the same star
         Rating = Rating == value ? null : value;
+    }
+
+    [RelayCommand]
+    private void CopyTodos()
+    {
+        if (!HasCapturedTodos)
+            return;
+
+        Clipboard.SetText(CapturedTodosText);
     }
 
     [RelayCommand]

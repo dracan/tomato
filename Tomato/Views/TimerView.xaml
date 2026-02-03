@@ -7,7 +7,7 @@
              xmlns:converters="clr-namespace:Tomato.Converters"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:TimerViewModel}"
-             d:DesignHeight="80" d:DesignWidth="150">
+             d:DesignHeight="100" d:DesignWidth="150">
 
     <UserControl.Resources>
         <converters:SessionStateToBrushConverter x:Key="SessionStateToBrushConverter"/>
@@ -50,106 +50,170 @@
         </Style>
     </UserControl.Resources>
 
-    <!-- Main container with rounded corners and session-type background color -->
-    <Border CornerRadius="8"
-            ToolTip="{Binding GoalTooltip}"
-            ToolTipService.InitialShowDelay="200">
-        <Border.ContextMenu>
-            <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
-                <MenuItem Header="Restart" Command="{Binding RestartCommand}"/>
-                <Separator/>
-                <MenuItem Header="20 minutes" Command="{Binding StartFocusWithDurationCommand}" CommandParameter="20"/>
-                <MenuItem Header="15 minutes" Command="{Binding StartFocusWithDurationCommand}" CommandParameter="15"/>
-                <MenuItem Header="10 minutes" Command="{Binding StartFocusWithDurationCommand}" CommandParameter="10"/>
-                <MenuItem Header="5 minutes" Command="{Binding StartFocusWithDurationCommand}" CommandParameter="5"/>
-                <Separator/>
-                <MenuItem Header="Long Break (15 min)" Command="{Binding StartLongBreakCommand}"/>
-                <Separator/>
-                <MenuItem Header="View Stats" Command="{Binding ViewStatsCommand}"/>
-            </ContextMenu>
-        </Border.ContextMenu>
-        <Border.Background>
-            <MultiBinding Converter="{StaticResource SessionStateToBrushConverter}">
-                <Binding Path="CurrentSessionType"/>
-                <Binding Path="IsRunning"/>
-                <Binding Path="IsPaused"/>
-            </MultiBinding>
-        </Border.Background>
+    <!-- Main container Grid -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
 
-        <Grid>
-            <!-- Close button (top-right) -->
-            <Button Content="×"
-                    Style="{StaticResource CloseButtonStyle}"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Top"
-                    Margin="0,4,4,0"
-                    Click="CloseButton_Click"/>
+        <!-- Main timer container with rounded corners and session-type background color -->
+        <Border Grid.Row="0"
+                CornerRadius="8"
+                ToolTip="{Binding GoalTooltip}"
+                ToolTipService.InitialShowDelay="200">
+            <Border.ContextMenu>
+                <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+                    <MenuItem Header="Add Todo" Command="{Binding ShowTodoInputCommand}"/>
+                    <Separator/>
+                    <MenuItem Header="Restart" Command="{Binding RestartCommand}"/>
+                    <Separator/>
+                    <MenuItem Header="20 minutes" Command="{Binding StartFocusWithDurationCommand}" CommandParameter="20"/>
+                    <MenuItem Header="15 minutes" Command="{Binding StartFocusWithDurationCommand}" CommandParameter="15"/>
+                    <MenuItem Header="10 minutes" Command="{Binding StartFocusWithDurationCommand}" CommandParameter="10"/>
+                    <MenuItem Header="5 minutes" Command="{Binding StartFocusWithDurationCommand}" CommandParameter="5"/>
+                    <Separator/>
+                    <MenuItem Header="Long Break (15 min)" Command="{Binding StartLongBreakCommand}"/>
+                    <Separator/>
+                    <MenuItem Header="View Stats" Command="{Binding ViewStatsCommand}"/>
+                </ContextMenu>
+            </Border.ContextMenu>
+            <Border.Background>
+                <MultiBinding Converter="{StaticResource SessionStateToBrushConverter}">
+                    <Binding Path="CurrentSessionType"/>
+                    <Binding Path="IsRunning"/>
+                    <Binding Path="IsPaused"/>
+                </MultiBinding>
+            </Border.Background>
 
-            <!-- Timer controls and display (centered) -->
-            <StackPanel Orientation="Horizontal"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center">
+            <Grid>
+                <!-- Close button (top-right) -->
+                <Button Content="×"
+                        Style="{StaticResource CloseButtonStyle}"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Margin="0,4,4,0"
+                        Click="CloseButton_Click"/>
 
-                <!-- Start button: visible when idle or paused -->
-                <Button Content="▶"
-                        Style="{StaticResource MiniControlButtonStyle}"
-                        VerticalAlignment="Center"
-                        Margin="0,0,8,0"
-                        Click="StartButton_Click">
-                    <Button.Visibility>
-                        <MultiBinding Converter="{StaticResource StartButtonVisibilityConverter}">
-                            <Binding Path="IsRunning"/>
-                            <Binding Path="IsPaused"/>
-                        </MultiBinding>
-                    </Button.Visibility>
-                </Button>
+                <!-- Todo count indicator (bottom-left) -->
+                <TextBlock Text="{Binding CapturedTodosCountText}"
+                           Foreground="White"
+                           FontSize="9"
+                           Opacity="0.8"
+                           HorizontalAlignment="Left"
+                           VerticalAlignment="Bottom"
+                           Margin="6,0,0,4"
+                           Visibility="{Binding HasCapturedTodos, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-                <!-- Pause button: visible when running and not paused -->
-                <Button Content="⏸"
-                        Style="{StaticResource MiniControlButtonStyle}"
-                        VerticalAlignment="Center"
-                        Margin="0,0,8,0"
-                        Command="{Binding PauseCommand}">
-                    <Button.Visibility>
-                        <MultiBinding Converter="{StaticResource PauseButtonVisibilityConverter}">
-                            <Binding Path="IsRunning"/>
-                            <Binding Path="IsPaused"/>
-                        </MultiBinding>
-                    </Button.Visibility>
-                </Button>
+                <!-- Timer controls and display (centered) -->
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center">
 
-                <!-- Timer display -->
-                <TextBlock Text="{Binding TimeRemaining, Converter={StaticResource TimeSpanToStringConverter}}"
-                           Style="{StaticResource TimerDisplayTextStyle}"/>
+                    <!-- Start button: visible when idle or paused -->
+                    <Button Content="▶"
+                            Style="{StaticResource MiniControlButtonStyle}"
+                            VerticalAlignment="Center"
+                            Margin="0,0,8,0"
+                            Click="StartButton_Click">
+                        <Button.Visibility>
+                            <MultiBinding Converter="{StaticResource StartButtonVisibilityConverter}">
+                                <Binding Path="IsRunning"/>
+                                <Binding Path="IsPaused"/>
+                            </MultiBinding>
+                        </Button.Visibility>
+                    </Button>
 
-                <!-- Stop button: visible when running or paused -->
-                <Button Content="■"
-                        Style="{StaticResource MiniControlButtonStyle}"
-                        VerticalAlignment="Center"
-                        Margin="8,0,0,0"
-                        Command="{Binding CancelCommand}">
-                    <Button.Visibility>
-                        <MultiBinding Converter="{StaticResource StopButtonVisibilityConverter}">
-                            <Binding Path="IsRunning"/>
-                            <Binding Path="IsPaused"/>
-                        </MultiBinding>
-                    </Button.Visibility>
-                </Button>
+                    <!-- Pause button: visible when running and not paused -->
+                    <Button Content="⏸"
+                            Style="{StaticResource MiniControlButtonStyle}"
+                            VerticalAlignment="Center"
+                            Margin="0,0,8,0"
+                            Command="{Binding PauseCommand}">
+                        <Button.Visibility>
+                            <MultiBinding Converter="{StaticResource PauseButtonVisibilityConverter}">
+                                <Binding Path="IsRunning"/>
+                                <Binding Path="IsPaused"/>
+                            </MultiBinding>
+                        </Button.Visibility>
+                    </Button>
 
-                <!-- Break button: visible when idle -->
-                <Button Content="☕"
-                        Style="{StaticResource MiniControlButtonStyle}"
-                        VerticalAlignment="Center"
-                        Margin="8,0,0,0"
-                        Command="{Binding StartBreakCommand}">
-                    <Button.Visibility>
-                        <MultiBinding Converter="{StaticResource IdleButtonVisibilityConverter}">
-                            <Binding Path="IsRunning"/>
-                            <Binding Path="IsPaused"/>
-                        </MultiBinding>
-                    </Button.Visibility>
-                </Button>
-            </StackPanel>
-        </Grid>
-    </Border>
+                    <!-- Timer display -->
+                    <TextBlock Text="{Binding TimeRemaining, Converter={StaticResource TimeSpanToStringConverter}}"
+                               Style="{StaticResource TimerDisplayTextStyle}"/>
+
+                    <!-- Stop button: visible when running or paused -->
+                    <Button Content="■"
+                            Style="{StaticResource MiniControlButtonStyle}"
+                            VerticalAlignment="Center"
+                            Margin="8,0,0,0"
+                            Command="{Binding CancelCommand}">
+                        <Button.Visibility>
+                            <MultiBinding Converter="{StaticResource StopButtonVisibilityConverter}">
+                                <Binding Path="IsRunning"/>
+                                <Binding Path="IsPaused"/>
+                            </MultiBinding>
+                        </Button.Visibility>
+                    </Button>
+
+                    <!-- Break button: visible when idle -->
+                    <Button Content="☕"
+                            Style="{StaticResource MiniControlButtonStyle}"
+                            VerticalAlignment="Center"
+                            Margin="8,0,0,0"
+                            Command="{Binding StartBreakCommand}">
+                        <Button.Visibility>
+                            <MultiBinding Converter="{StaticResource IdleButtonVisibilityConverter}">
+                                <Binding Path="IsRunning"/>
+                                <Binding Path="IsPaused"/>
+                            </MultiBinding>
+                        </Button.Visibility>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Todo input panel (expandable) -->
+        <Border Grid.Row="1"
+                Background="#2D2D2D"
+                CornerRadius="0,0,8,8"
+                Padding="8,6"
+                Visibility="{Binding IsTodoInputVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBox x:Name="TodoInputTextBox"
+                         Grid.Column="0"
+                         Text="{Binding NewTodoText, UpdateSourceTrigger=PropertyChanged}"
+                         Background="#1E1E1E"
+                         Foreground="White"
+                         BorderBrush="#555"
+                         BorderThickness="1"
+                         Padding="6,4"
+                         FontSize="12"
+                         VerticalContentAlignment="Center"
+                         IsVisibleChanged="TodoInputTextBox_IsVisibleChanged">
+                    <TextBox.InputBindings>
+                        <KeyBinding Key="Enter" Command="{Binding AddTodoCommand}"/>
+                        <KeyBinding Key="Escape" Command="{Binding CancelTodoInputCommand}"/>
+                    </TextBox.InputBindings>
+                </TextBox>
+
+                <Button Grid.Column="1"
+                        Content="+"
+                        Command="{Binding AddTodoCommand}"
+                        Background="Transparent"
+                        Foreground="White"
+                        BorderThickness="0"
+                        FontSize="16"
+                        FontWeight="Bold"
+                        Padding="8,0"
+                        Cursor="Hand"
+                        VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+    </Grid>
 </UserControl>

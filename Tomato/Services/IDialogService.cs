@@ -1,3 +1,5 @@
+using Tomato.Models;
+
 namespace Tomato.Services;
 
 /// <summary>
@@ -30,6 +32,14 @@ public interface IDialogService
     /// Shows the results dialog after a focus session completes.
     /// </summary>
     /// <param name="goal">The goal that was set for the session, if any.</param>
+    /// <param name="capturedTodos">Optional list of todos captured during the session.</param>
     /// <returns>The dialog result containing confirmation status and results text.</returns>
-    Task<ResultsDialogResult> ShowResultsDialogAsync(string? goal);
+    Task<ResultsDialogResult> ShowResultsDialogAsync(string? goal, IReadOnlyList<TodoItem>? capturedTodos = null);
+
+    /// <summary>
+    /// Shows a dialog displaying captured todos (without feedback options).
+    /// Used when a session is cancelled early but has captured todos.
+    /// </summary>
+    /// <param name="capturedTodos">The list of todos to display.</param>
+    Task ShowTodosDialogAsync(IReadOnlyList<TodoItem> capturedTodos);
 }

@@ -8,7 +8,8 @@
         d:DataContext="{d:DesignInstance Type=vm:ResultsDialogViewModel}"
         Title="Session Complete"
         Width="350"
-        Height="270"
+        SizeToContent="Height"
+        MaxHeight="400"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="{StaticResource BackgroundBrush}"
@@ -24,19 +25,30 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Prompt -->
+            <!-- Prompt (feedback mode only) -->
             <TextBlock Grid.Row="0"
                        Text="How did the session go?"
                        Foreground="{StaticResource TextPrimaryBrush}"
                        FontSize="16"
                        FontWeight="SemiBold"
-                       Margin="0,0,0,8"/>
+                       Margin="0,0,0,8"
+                       Visibility="{Binding ShowFeedbackSection, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-            <!-- Goal display (if set) -->
+            <!-- Todos Only Header -->
+            <TextBlock Grid.Row="0"
+                       Text="Captured Todos"
+                       Foreground="{StaticResource TextPrimaryBrush}"
+                       FontSize="16"
+                       FontWeight="SemiBold"
+                       Margin="0,0,0,8"
+                       Visibility="{Binding IsTodosOnlyMode, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+            <!-- Goal display (if set, feedback mode only) -->
             <TextBlock Grid.Row="1"
                        Text="{Binding Goal, StringFormat='Goal: {0}'}"
                        Foreground="{StaticResource TextSecondaryBrush}"
@@ -45,11 +57,12 @@
                        Margin="0,0,0,12"
                        Visibility="{Binding Goal, Converter={StaticResource NullToCollapsedConverter}}"/>
 
-            <!-- Star Rating -->
+            <!-- Star Rating (feedback mode only) -->
             <StackPanel Grid.Row="2"
                         Orientation="Horizontal"
                         HorizontalAlignment="Center"
-                        Margin="0,0,0,12">
+                        Margin="0,0,0,12"
+                        Visibility="{Binding ShowFeedbackSection, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Button Style="{StaticResource StarButtonStyle}"
                         Content="{Binding IsStar1Selected, Converter={StaticResource BoolToStarConverter}}"
                         Command="{Binding SetRatingCommand}"
@@ -72,8 +85,52 @@
                         CommandParameter="5"/>
             </StackPanel>
 
-            <!-- Results TextBox -->
-            <TextBox Grid.Row="3"
+            <!-- Captured Todos Section -->
+            <Border Grid.Row="3"
+                    Background="{StaticResource SurfaceBrush}"
+                    CornerRadius="4"
+                    Padding="8"
+                    Margin="0,0,0,12"
+                    Visibility="{Binding HasCapturedTodos, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Header only shown in feedback mode (todos-only mode has main header) -->
+                    <TextBlock Grid.Row="0" Grid.Column="0"
+                               Text="Captured Todos"
+                               Foreground="{StaticResource TextPrimaryBrush}"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"
+                               Visibility="{Binding ShowFeedbackSection, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                    <Button Grid.Row="0" Grid.Column="1"
+                            Content="Copy All"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Command="{Binding CopyTodosCommand}"
+                            Padding="8,4"
+                            FontSize="11"/>
+
+                    <TextBlock Grid.Row="1" Grid.ColumnSpan="2"
+                               Text="{Binding CapturedTodosText}"
+                               Foreground="{StaticResource TextSecondaryBrush}"
+                               FontSize="11"
+                               FontFamily="Consolas"
+                               TextWrapping="Wrap"
+                               Margin="0,8,0,0"
+                               MaxHeight="120"/>
+                </Grid>
+            </Border>
+
+            <!-- Results TextBox (feedback mode only) -->
+            <TextBox Grid.Row="4"
                      Text="{Binding Results, UpdateSourceTrigger=PropertyChanged}"
                      Background="{StaticResource SurfaceBrush}"
                      Foreground="{StaticResource TextPrimaryBrush}"
@@ -84,13 +141,17 @@
                      AcceptsReturn="True"
                      TextWrapping="Wrap"
                      VerticalScrollBarVisibility="Auto"
-                     x:Name="ResultsTextBox"/>
+                     MinHeight="80"
+                     MaxHeight="100"
+                     x:Name="ResultsTextBox"
+                     Visibility="{Binding ShowFeedbackSection, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-            <!-- Buttons -->
-            <StackPanel Grid.Row="4"
+            <!-- Buttons (feedback mode) -->
+            <StackPanel Grid.Row="5"
                         Orientation="Horizontal"
                         HorizontalAlignment="Right"
-                        Margin="0,16,0,0">
+                        Margin="0,16,0,0"
+                        Visibility="{Binding ShowFeedbackSection, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <Button Content="Skip"
                         Style="{StaticResource SecondaryButtonStyle}"
                         Command="{Binding CancelCommand}"
@@ -102,6 +163,17 @@
                         Padding="16,8"
                         IsDefault="True"/>
             </StackPanel>
+
+            <!-- Close Button (todos-only mode) -->
+            <Button Grid.Row="5"
+                    Content="Close"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Command="{Binding CancelCommand}"
+                    HorizontalAlignment="Right"
+                    Padding="16,8"
+                    Margin="0,16,0,0"
+                    IsDefault="True"
+                    Visibility="{Binding IsTodosOnlyMode, Converter={StaticResource BooleanToVisibilityConverter}}"/>
         </Grid>
     </Border>
 </Window>

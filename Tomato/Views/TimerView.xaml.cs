@@ -41,4 +41,16 @@ public partial class TimerView : UserControl
     {
         Application.Current.Shutdown();
     }
+
+    /// <summary>
+    /// Auto-focuses the todo input TextBox when it becomes visible.
+    /// </summary>
+    private void TodoInputTextBox_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (sender is System.Windows.Controls.TextBox textBox && textBox.IsVisible)
+        {
+            textBox.Focus();
+            textBox.SelectAll();
+        }
+    }
 }

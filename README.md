@@ -9,7 +9,8 @@ A minimal Windows desktop Pomodoro timer.
 - 25-minute focus sessions with short and long breaks
 - 4-session cycles (Focus → Break → Focus → Break → Focus → Break → Focus → Long Break)
 - Goal setting dialog when starting a focus session
-- Results dialog when a focus session completes
+- Quick-capture todos during focus sessions (right-click menu)
+- Results dialog when a focus session completes (includes captured todos)
 - Session statistics tracking with historical data
 - View Stats report (right-click → View Stats) - generates an HTML report with:
   - Today's stats (sessions, focus time, break time, cycles)
@@ -38,6 +39,22 @@ A minimal Windows desktop Pomodoro timer.
 
 ![Goal entry](Assets/ReadmeImages/Goal.png)
 ![Feedback entry](Assets/ReadmeImages/Feedback.png)
+
+### Quick-capture todos
+
+During a focus session, right-click and select "Add Todo" to quickly capture a thought or task. Todos are displayed:
+- When the session completes normally (in the feedback dialog)
+- When you stop a session early that has captured todos (in a dedicated todos dialog)
+
+Todos are formatted as markdown checkboxes for easy copy/paste:
+
+```markdown
+- [ ] Buy groceries
+- [ ] Call mom
+- [ ] Review PR
+```
+
+Todos are temporary and cleared after you start a new focus session.
 
 ### Report generation
 

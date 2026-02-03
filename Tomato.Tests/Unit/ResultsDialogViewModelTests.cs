@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Tomato.Models;
 using Tomato.ViewModels;
 
 namespace Tomato.Tests.Unit;
@@ -239,6 +240,138 @@ public class ResultsDialogViewModelTests
         changedProperties.Should().Contain(nameof(ResultsDialogViewModel.IsStar4Selected));
         changedProperties.Should().Contain(nameof(ResultsDialogViewModel.IsStar5Selected));
     }
+
+    #endregion
+
+    #region Captured Todos Tests
+
+    [Fact]
+    public void CapturedTodos_InitiallyNull()
+    {
+        // Arrange
+        var sut = new ResultsDialogViewModel();
+
+        // Assert
+        sut.CapturedTodos.Should().BeNull();
+    }
+
+    [Fact]
+    public void HasCapturedTodos_WhenNull_ReturnsFalse()
+    {
+        // Arrange
+        var sut = new ResultsDialogViewModel();
+
+        // Assert
+        sut.HasCapturedTodos.Should().BeFalse();
+    }
+
+    [Fact]
+    public void HasCapturedTodos_WhenEmpty_ReturnsFalse()
+    {
+        // Arrange
+        var sut = new ResultsDialogViewModel
+        {
+            CapturedTodos = new List<TodoItem>()
+        };
+
+        // Assert
+        sut.HasCapturedTodos.Should().BeFalse();
+    }
+
+    [Fact]
+    public void HasCapturedTodos_WhenHasItems_ReturnsTrue()
+    {
+        // Arrange
+        var sut = new ResultsDialogViewModel
+        {
+            CapturedTodos = new List<TodoItem>
+            {
+                new("Buy groceries", DateTime.Now)
+            }
+        };
+
+        // Assert
+        sut.HasCapturedTodos.Should().BeTrue();
+    }
+
+    [Fact]
+    public void CapturedTodosText_WhenNull_ReturnsEmpty()
+    {
+        // Arrange
+        var sut = new ResultsDialogViewModel();
+
+        // Assert
+        sut.CapturedTodosText.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CapturedTodosText_WhenEmpty_ReturnsEmpty()
+    {
+        // Arrange
+        var sut = new ResultsDialogViewModel
+        {
+            CapturedTodos = new List<TodoItem>()
+        };
+
+        // Assert
+        sut.CapturedTodosText.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CapturedTodosText_FormatsAsMarkdownCheckboxes()
+    {
+        // Arrange
+        var sut = new ResultsDialogViewModel
+        {
+            CapturedTodos = new List<TodoItem>
+            {
+                new("Buy groceries", DateTime.Now),
+                new("Call mom", DateTime.Now),
+                new("Fix bug", DateTime.Now)
+            }
+        };
+
+        // Act
+        var text = sut.CapturedTodosText;
+
+        // Assert
+        text.Should().Be("- [ ] Buy groceries\r\n- [ ] Call mom\r\n- [ ] Fix bug");
+    }
+
+    [Fact]
+    public void CapturedTodosText_SingleItem_NoTrailingNewline()
+    {
+        // Arrange
+        var sut = new ResultsDialogViewModel
+        {
+            CapturedTodos = new List<TodoItem>
+            {
+                new("Single todo", DateTime.Now)
+            }
+        };
+
+        // Act
+        var text = sut.CapturedTodosText;
+
+        // Assert
+        text.Should().Be("- [ ] Single todo");
+        text.Should().NotEndWith("\n");
+        text.Should().NotEndWith("\r\n");
+    }
+
+    [Fact]
+    public void CopyTodosCommand_WhenNoTodos_DoesNotThrow()
+    {
+        // Arrange
+        var sut = new ResultsDialogViewModel();
+
+        // Act & Assert - should not throw and should not attempt clipboard access
+        var action = () => sut.CopyTodosCommand.Execute(null);
+        action.Should().NotThrow();
+    }
+
+    // Note: CopyTodosCommand with actual todos requires STA thread for clipboard access
+    // and is tested manually. The command itself formats text correctly (tested via CapturedTodosText).
 
     #endregion
 }

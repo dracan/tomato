@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Tomato.Models;
@@ -41,6 +42,32 @@ public partial class TimerViewModel : ObservableObject
     [ObservableProperty]
     private string? _currentGoal;
 
+    [ObservableProperty]
+    private bool _isTodoInputVisible;
+
+    [ObservableProperty]
+    private string _newTodoText = string.Empty;
+
+    /// <summary>
+    /// Collection of todos captured during the current focus session.
+    /// </summary>
+    public ObservableCollection<TodoItem> CapturedTodos { get; } = new();
+
+    /// <summary>
+    /// Gets whether there are any captured todos.
+    /// </summary>
+    public bool HasCapturedTodos => CapturedTodos.Count > 0;
+
+    /// <summary>
+    /// Gets the count of captured todos for display.
+    /// </summary>
+    public string CapturedTodosCountText => CapturedTodos.Count == 1 ? "1 todo" : $"{CapturedTodos.Count} todos";
+
+    /// <summary>
+    /// Gets whether we can show the todo input (only during focus session).
+    /// </summary>
+    public bool CanShowTodoInput => (IsRunning || IsPaused) && CurrentSessionType == SessionType.Focus;
+
     /// <summary>
     /// Returns the goal text for tooltip display, or null if no tooltip should be shown.
     /// Tooltip is only shown when a session is active (running or paused) and has a non-empty goal.
@@ -55,15 +82,26 @@ public partial class TimerViewModel : ObservableObject
     partial void OnIsRunningChanged(bool value)
     {
         OnPropertyChanged(nameof(GoalTooltip));
+        OnPropertyChanged(nameof(CanShowTodoInput));
         RestartCommand.NotifyCanExecuteChanged();
+        ShowTodoInputCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnIsPausedChanged(bool value)
     {
         OnPropertyChanged(nameof(GoalTooltip));
+        OnPropertyChanged(nameof(CanShowTodoInput));
         RestartCommand.NotifyCanExecuteChanged();
+        ShowTodoInputCommand.NotifyCanExecuteChanged();
     }
+
     partial void OnCurrentGoalChanged(string? value) => OnPropertyChanged(nameof(GoalTooltip));
+
+    partial void OnCurrentSessionTypeChanged(SessionType value)
+    {
+        OnPropertyChanged(nameof(CanShowTodoInput));
+        ShowTodoInputCommand.NotifyCanExecuteChanged();
+    }
 
     public TimerViewModel(ISessionManager sessionManager, IDialogService dialogService, IStatisticsReportService statisticsReportService)
     {
@@ -85,6 +123,7 @@ public partial class TimerViewModel : ObservableObject
         var result = await _dialogService.ShowGoalDialogAsync();
         if (result.Confirmed)
         {
+            ClearCapturedTodos();
             CurrentGoal = result.Goal;
             _sessionManager.StartFocus(result.Goal);
         }
@@ -101,6 +140,7 @@ public partial class TimerViewModel : ObservableObject
         var result = await _dialogService.ShowGoalDialogAsync();
         if (result.Confirmed)
         {
+            ClearCapturedTodos();
             CurrentGoal = result.Goal;
             _sessionManager.StartFocus(TimeSpan.FromMinutes(minutes), result.Goal);
         }
@@ -131,9 +171,17 @@ public partial class TimerViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void Cancel()
+    private async Task CancelAsync()
     {
+        // If cancelling a focus session with captured todos, show them first
+        if (CurrentSessionType == SessionType.Focus && CapturedTodos.Count > 0)
+        {
+            var todos = CapturedTodos.ToList().AsReadOnly();
+            await _dialogService.ShowTodosDialogAsync(todos);
+        }
+
         _sessionManager.Cancel();
+        ClearCapturedTodos();
         ResetToDefault();
     }
 
@@ -155,6 +203,35 @@ public partial class TimerViewModel : ObservableObject
         _statisticsReportService.GenerateAndOpenReport();
     }
 
+    [RelayCommand(CanExecute = nameof(CanShowTodoInput))]
+    private void ShowTodoInput()
+    {
+        IsTodoInputVisible = true;
+    }
+
+    [RelayCommand]
+    private void AddTodo()
+    {
+        if (string.IsNullOrWhiteSpace(NewTodoText))
+        {
+            CancelTodoInput();
+            return;
+        }
+
+        CapturedTodos.Add(new TodoItem(NewTodoText.Trim(), DateTime.Now));
+        OnPropertyChanged(nameof(HasCapturedTodos));
+        OnPropertyChanged(nameof(CapturedTodosCountText));
+        NewTodoText = string.Empty;
+        IsTodoInputVisible = false;
+    }
+
+    [RelayCommand]
+    private void CancelTodoInput()
+    {
+        NewTodoText = string.Empty;
+        IsTodoInputVisible = false;
+    }
+
     private void OnTimerTick(object? sender, TimerTickEventArgs e)
     {
         TimeRemaining = e.Remaining;
@@ -174,14 +251,23 @@ public partial class TimerViewModel : ObservableObject
 
     private async Task ShowResultsDialogAsync()
     {
-        var result = await _dialogService.ShowResultsDialogAsync(CurrentGoal);
+        var todos = CapturedTodos.Count > 0 ? CapturedTodos.ToList().AsReadOnly() : null;
+        var result = await _dialogService.ShowResultsDialogAsync(CurrentGoal, todos);
         if (result.Confirmed && (!string.IsNullOrWhiteSpace(result.Results) || result.Rating.HasValue))
         {
             _sessionManager.RecordSessionResults(result.Results, result.Rating);
         }
 
-        // Clear the goal after the session is complete
+        // Clear the goal and todos after the session is complete
         CurrentGoal = null;
+        ClearCapturedTodos();
+    }
+
+    private void ClearCapturedTodos()
+    {
+        CapturedTodos.Clear();
+        OnPropertyChanged(nameof(HasCapturedTodos));
+        OnPropertyChanged(nameof(CapturedTodosCountText));
     }
 
     private void UpdateFromSession(Session session, SessionStatus status)

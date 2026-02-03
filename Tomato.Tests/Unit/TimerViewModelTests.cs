@@ -465,14 +465,14 @@ public class TimerViewModelTests
         var session = Session.CreateFocus("Test goal");
         session.Status = SessionStatus.Completed;
         _sessionManager.CurrentSession.Returns(session);
-        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>()).Returns(new ResultsDialogResult(true, "Some results", null));
+        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>()).Returns(new ResultsDialogResult(true, "Some results", null));
 
         // Act
         _sessionManager.SessionStateChanged += Raise.EventWith(
             new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Completed));
 
         // Assert - dialog should be shown
-        _dialogService.Received(1).ShowResultsDialogAsync(Arg.Any<string?>());
+        _dialogService.Received(1).ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>());
     }
 
     [Fact]
@@ -488,7 +488,7 @@ public class TimerViewModelTests
             new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Completed));
 
         // Assert - dialog should not be shown for breaks
-        _dialogService.DidNotReceive().ShowResultsDialogAsync(Arg.Any<string?>());
+        _dialogService.DidNotReceive().ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>());
     }
 
     [Fact]
@@ -496,7 +496,7 @@ public class TimerViewModelTests
     {
         // Arrange
         _sut.CurrentGoal.Should().BeNull();
-        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>()).Returns(new ResultsDialogResult(true, "Completed task", null));
+        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>()).Returns(new ResultsDialogResult(true, "Completed task", null));
 
         // Simulate focus session completion
         var session = Session.CreateFocus();
@@ -516,7 +516,7 @@ public class TimerViewModelTests
     public async Task WhenResultsDialogCancelled_DoesNotRecordSessionResults()
     {
         // Arrange
-        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>()).Returns(new ResultsDialogResult(false, null, null));
+        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>()).Returns(new ResultsDialogResult(false, null, null));
 
         // Simulate focus session completion
         var session = Session.CreateFocus();
@@ -536,7 +536,7 @@ public class TimerViewModelTests
     public async Task WhenResultsDialogSubmittedEmpty_DoesNotRecordSessionResults()
     {
         // Arrange
-        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>()).Returns(new ResultsDialogResult(true, "", null));
+        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>()).Returns(new ResultsDialogResult(true, "", null));
 
         // Simulate focus session completion
         var session = Session.CreateFocus();
@@ -556,7 +556,7 @@ public class TimerViewModelTests
     public async Task WhenResultsDialogConfirmedWithRatingOnly_RecordsSessionResults()
     {
         // Arrange
-        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>()).Returns(new ResultsDialogResult(true, "", 4));
+        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>()).Returns(new ResultsDialogResult(true, "", 4));
 
         // Simulate focus session completion
         var session = Session.CreateFocus();

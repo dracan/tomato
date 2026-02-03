@@ -1,4 +1,5 @@
 using System.Windows;
+using Tomato.Models;
 using Tomato.ViewModels;
 using Tomato.Views;
 
@@ -35,9 +36,9 @@ public sealed class DialogService : IDialogService
     }
 
     /// <inheritdoc />
-    public Task<ResultsDialogResult> ShowResultsDialogAsync(string? goal)
+    public Task<ResultsDialogResult> ShowResultsDialogAsync(string? goal, IReadOnlyList<TodoItem>? capturedTodos = null)
     {
-        var viewModel = new ResultsDialogViewModel { Goal = goal };
+        var viewModel = new ResultsDialogViewModel { Goal = goal, CapturedTodos = capturedTodos };
         var dialog = new ResultsDialog
         {
             DataContext = viewModel,
@@ -51,5 +52,24 @@ public sealed class DialogService : IDialogService
         var rating = confirmed ? viewModel.Rating : null;
 
         return Task.FromResult(new ResultsDialogResult(confirmed, results, rating));
+    }
+
+    /// <inheritdoc />
+    public Task ShowTodosDialogAsync(IReadOnlyList<TodoItem> capturedTodos)
+    {
+        var viewModel = new ResultsDialogViewModel
+        {
+            CapturedTodos = capturedTodos,
+            IsTodosOnlyMode = true
+        };
+        var dialog = new ResultsDialog
+        {
+            DataContext = viewModel,
+            Owner = _owner
+        };
+
+        dialog.ShowDialog();
+
+        return Task.CompletedTask;
     }
 }
