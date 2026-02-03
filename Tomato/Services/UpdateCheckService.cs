@@ -90,7 +90,30 @@ public sealed class UpdateCheckService : IUpdateCheckService
 
     private static Version? GetCurrentVersion()
     {
-        return Assembly.GetExecutingAssembly().GetName().Version;
+        // MinVer sets the semantic version in AssemblyInformationalVersionAttribute
+        var infoVersion = Assembly.GetExecutingAssembly()
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+
+        if (string.IsNullOrEmpty(infoVersion))
+        {
+            return null;
+        }
+
+        // MinVer may append "+commitHash" metadata, strip it for version comparison
+        var plusIndex = infoVersion.IndexOf('+');
+        if (plusIndex >= 0)
+        {
+            infoVersion = infoVersion.Substring(0, plusIndex);
+        }
+
+        // Also strip any prerelease suffix like "-alpha.0.1"
+        var dashIndex = infoVersion.IndexOf('-');
+        if (dashIndex >= 0)
+        {
+            infoVersion = infoVersion.Substring(0, dashIndex);
+        }
+
+        return Version.TryParse(infoVersion, out var version) ? version : null;
     }
 
     internal static Version? ParseVersion(string tagName)
