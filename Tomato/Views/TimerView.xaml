@@ -15,6 +15,7 @@
         <converters:PauseButtonVisibilityConverter x:Key="PauseButtonVisibilityConverter"/>
         <converters:StopButtonVisibilityConverter x:Key="StopButtonVisibilityConverter"/>
         <converters:IdleButtonVisibilityConverter x:Key="IdleButtonVisibilityConverter"/>
+        <converters:RatingToBrushConverter x:Key="RatingToBrushConverter"/>
 
         <!-- Paused state breathing animation style for timer display -->
         <Style x:Key="TimerDisplayTextStyle" TargetType="TextBlock">
@@ -87,6 +88,24 @@
             </Border.Background>
 
             <Grid>
+                <!-- Completed session dots (top-left) -->
+                <ItemsControl ItemsSource="{Binding CompletedSessionRecords}"
+                              HorizontalAlignment="Left"
+                              VerticalAlignment="Top"
+                              Margin="6,4,0,0">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Ellipse Width="6" Height="6" Margin="0,0,3,0"
+                                     Fill="{Binding Rating, Converter={StaticResource RatingToBrushConverter}}"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
                 <!-- Close button (top-right) -->
                 <Button Content="×"
                         Style="{StaticResource CloseButtonStyle}"

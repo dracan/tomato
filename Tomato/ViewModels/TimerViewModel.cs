@@ -54,6 +54,11 @@ public partial class TimerViewModel : ObservableObject
     public ObservableCollection<TodoItem> CapturedTodos { get; } = new();
 
     /// <summary>
+    /// Collection of completed session records for today, used to display completion dots.
+    /// </summary>
+    public ObservableCollection<SessionRecord> CompletedSessionRecords { get; } = new();
+
+    /// <summary>
     /// Gets whether there are any captured todos.
     /// </summary>
     public bool HasCapturedTodos => CapturedTodos.Count > 0;
@@ -295,6 +300,22 @@ public partial class TimerViewModel : ObservableObject
     {
         CompletedSessionsToday = _sessionManager.TodayStatistics.FocusSessionsCompleted;
         CycleProgress = $"{_sessionManager.Cycle.CompletedFocusSessions}/{PomodoroCycle.FocusSessionsPerCycle}";
+        SyncCompletedSessionRecords();
+    }
+
+    private void SyncCompletedSessionRecords()
+    {
+        var records = _sessionManager.TodayStatistics.SessionRecords;
+
+        // Only update if counts differ (new sessions added)
+        if (CompletedSessionRecords.Count != records.Count)
+        {
+            CompletedSessionRecords.Clear();
+            foreach (var record in records)
+            {
+                CompletedSessionRecords.Add(record);
+            }
+        }
     }
 
     private void ResetToDefault()
