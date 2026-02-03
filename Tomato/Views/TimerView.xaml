@@ -15,6 +15,39 @@
         <converters:PauseButtonVisibilityConverter x:Key="PauseButtonVisibilityConverter"/>
         <converters:StopButtonVisibilityConverter x:Key="StopButtonVisibilityConverter"/>
         <converters:IdleButtonVisibilityConverter x:Key="IdleButtonVisibilityConverter"/>
+
+        <!-- Paused state breathing animation style for timer display -->
+        <Style x:Key="TimerDisplayTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="28"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsPaused}" Value="True">
+                    <DataTrigger.EnterActions>
+                        <BeginStoryboard x:Name="PausedBreathingStoryboard">
+                            <Storyboard>
+                                <DoubleAnimation
+                                    Storyboard.TargetProperty="Opacity"
+                                    From="1.0"
+                                    To="0.4"
+                                    Duration="0:0:0.8"
+                                    AutoReverse="True"
+                                    RepeatBehavior="Forever">
+                                    <DoubleAnimation.EasingFunction>
+                                        <SineEase EasingMode="EaseInOut"/>
+                                    </DoubleAnimation.EasingFunction>
+                                </DoubleAnimation>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </DataTrigger.EnterActions>
+                    <DataTrigger.ExitActions>
+                        <StopStoryboard BeginStoryboardName="PausedBreathingStoryboard"/>
+                    </DataTrigger.ExitActions>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
     </UserControl.Resources>
 
     <!-- Main container with rounded corners and session-type background color -->
@@ -87,11 +120,7 @@
 
                 <!-- Timer display -->
                 <TextBlock Text="{Binding TimeRemaining, Converter={StaticResource TimeSpanToStringConverter}}"
-                           Foreground="White"
-                           FontSize="28"
-                           FontWeight="Bold"
-                           FontFamily="Segoe UI"
-                           VerticalAlignment="Center"/>
+                           Style="{StaticResource TimerDisplayTextStyle}"/>
 
                 <!-- Stop button: visible when running or paused -->
                 <Button Content="■"
