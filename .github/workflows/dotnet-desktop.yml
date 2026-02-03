@@ -15,6 +15,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
@@ -25,7 +27,7 @@ jobs:
       run: dotnet restore Tomato.sln
 
     - name: Build
-      run: dotnet build Tomato.sln -c Release --no-restore
+      run: dotnet build Tomato.sln -c Release --no-restore -p:MinVerVersionOverride=0.${{ github.run_number }}.0
 
     - name: Test
       run: dotnet test Tomato.sln -c Release --no-build --verbosity normal
@@ -46,7 +48,7 @@ jobs:
       if: github.event_name == 'push'
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: v${{ github.run_number }}
-        name: Release ${{ github.run_number }}
+        tag_name: v0.${{ github.run_number }}.0
+        name: Release 0.${{ github.run_number }}.0
         files: Tomato-win-x64.zip
         generate_release_notes: true

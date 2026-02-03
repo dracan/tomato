@@ -65,10 +65,11 @@ public class UpdateCheckServiceTests : IDisposable
     [Fact]
     public async Task CheckForUpdateAsync_WhenCurrentVersionIsLatest_ReturnsNull()
     {
-        // Arrange - version 0.0.1 should be older than any real version
+        // Arrange - use v0.0.0 which is the lowest possible version
+        // MinVer defaults to 0.0.0-alpha.0 (assembly version 0.0.0.0) when no tags exist
         _httpHandler.SetupResponse(HttpStatusCode.OK, @"{
-            ""tag_name"": ""v0.0.1"",
-            ""html_url"": ""https://github.com/dracan/tomato/releases/tag/v0.0.1""
+            ""tag_name"": ""v0.0.0"",
+            ""html_url"": ""https://github.com/dracan/tomato/releases/tag/v0.0.0""
         }");
 
         // Act
