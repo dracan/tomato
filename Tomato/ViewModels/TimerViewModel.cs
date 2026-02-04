@@ -208,6 +208,16 @@ public partial class TimerViewModel : ObservableObject
         _statisticsReportService.GenerateAndOpenReport();
     }
 
+    [RelayCommand]
+    private async Task AddSupplementalActivityAsync()
+    {
+        var result = await _dialogService.ShowSupplementalActivityDialogAsync();
+        if (result.Confirmed && !string.IsNullOrWhiteSpace(result.Description))
+        {
+            _sessionManager.AddSupplementalActivity(result.Description);
+        }
+    }
+
     [RelayCommand(CanExecute = nameof(CanShowTodoInput))]
     private void ShowTodoInput()
     {

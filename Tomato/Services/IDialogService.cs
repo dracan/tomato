@@ -18,6 +18,13 @@ public record GoalDialogResult(bool Confirmed, string? Goal);
 public record ResultsDialogResult(bool Confirmed, string? Results, int? Rating);
 
 /// <summary>
+/// Result of a supplemental activity dialog interaction.
+/// </summary>
+/// <param name="Confirmed">Whether the user confirmed (true) or cancelled (false).</param>
+/// <param name="Description">The activity description entered by the user, if confirmed.</param>
+public record SupplementalActivityDialogResult(bool Confirmed, string? Description);
+
+/// <summary>
 /// Service for showing dialogs to the user.
 /// </summary>
 public interface IDialogService
@@ -42,4 +49,10 @@ public interface IDialogService
     /// </summary>
     /// <param name="capturedTodos">The list of todos to display.</param>
     Task ShowTodosDialogAsync(IReadOnlyList<TodoItem> capturedTodos);
+
+    /// <summary>
+    /// Shows the supplemental activity entry dialog.
+    /// </summary>
+    /// <returns>The dialog result containing confirmation status and activity description.</returns>
+    Task<SupplementalActivityDialogResult> ShowSupplementalActivityDialogAsync();
 }

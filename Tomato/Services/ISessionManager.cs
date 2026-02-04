@@ -132,4 +132,10 @@ public interface ISessionManager
     /// Only valid when a session is running or paused.
     /// </summary>
     void Restart();
+
+    /// <summary>
+    /// Adds a supplemental activity (non-Pomodoro work like meetings) to today's statistics.
+    /// </summary>
+    /// <param name="description">A description of the activity.</param>
+    void AddSupplementalActivity(string description);
 }

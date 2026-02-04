@@ -115,6 +115,7 @@ public sealed class StatisticsReportService : IStatisticsReportService
         sb.AppendLine($"                </div>");
         sb.AppendLine("            </div>");
         sb.AppendLine(GenerateTodaySessionsSection(todayStats));
+        sb.AppendLine(GenerateTodaySupplementalActivitiesSection(todayStats));
         sb.AppendLine("        </section>");
         sb.AppendLine();
 
@@ -410,6 +411,32 @@ public sealed class StatisticsReportService : IStatisticsReportService
             margin-bottom: 0;
         }
 
+        .activity-card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            border-left: 3px solid #9b59b6;
+        }
+
+        .activity-description {
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .history-activity-item {
+            background: var(--card-bg);
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-left: 3px solid #9b59b6;
+        }
+
+        .history-activity-item:last-child {
+            margin-bottom: 0;
+        }
+
         @media (max-width: 600px) {
             .container {
                 padding: 1rem;
@@ -444,7 +471,7 @@ public sealed class StatisticsReportService : IStatisticsReportService
         var allDays = new List<DailyStatistics>();
 
         // Add today if it has data
-        if (todayStats.FocusSessionsCompleted > 0 || todayStats.TotalFocusTime > TimeSpan.Zero)
+        if (todayStats.FocusSessionsCompleted > 0 || todayStats.TotalFocusTime > TimeSpan.Zero || todayStats.SupplementalActivities.Count > 0)
         {
             allDays.Add(todayStats);
         }
@@ -480,12 +507,14 @@ public sealed class StatisticsReportService : IStatisticsReportService
         {
             var isToday = day.Date == today;
             var hasSessionRecords = day.SessionRecords.Count > 0;
+            var hasSupplementalActivities = day.SupplementalActivities.Count > 0;
+            var hasExpandableContent = hasSessionRecords || hasSupplementalActivities;
             var rowClass = isToday ? " class=\"today-row\"" : "";
 
             sb.AppendLine($"                    <tr{rowClass}>");
 
-            // Date column - include expand button if there are session records
-            if (hasSessionRecords)
+            // Date column - include expand button if there are session records or activities
+            if (hasExpandableContent)
             {
                 sb.AppendLine($"                        <td><button class=\"expand-btn\" onclick=\"toggleRow({rowIndex})\">+</button>{day.Date:yyyy-MM-dd}</td>");
             }
@@ -500,8 +529,8 @@ public sealed class StatisticsReportService : IStatisticsReportService
             sb.AppendLine($"                        <td>{day.CyclesCompleted}</td>");
             sb.AppendLine("                    </tr>");
 
-            // Add expandable row with session details
-            if (hasSessionRecords)
+            // Add expandable row with session details and supplemental activities
+            if (hasExpandableContent)
             {
                 sb.AppendLine($"                    <tr class=\"history-sessions\" id=\"sessions-{rowIndex}\">");
                 sb.AppendLine("                        <td colspan=\"5\">");
@@ -514,6 +543,13 @@ public sealed class StatisticsReportService : IStatisticsReportService
                     sb.AppendLine($"                                    <div class=\"session-rating\"><strong>Rating:</strong> {FormatRating(record.Rating)}</div>");
                     sb.AppendLine($"                                    <div class=\"session-goal\"><strong>Goal:</strong> {(string.IsNullOrWhiteSpace(record.Goal) ? "No goal set" : HtmlEncode(record.Goal))}</div>");
                     sb.AppendLine($"                                    <div class=\"session-results\"><strong>Results:</strong> {(string.IsNullOrWhiteSpace(record.Results) ? "No results recorded" : HtmlEncode(record.Results))}</div>");
+                    sb.AppendLine("                                </div>");
+                }
+
+                foreach (var activity in day.SupplementalActivities)
+                {
+                    sb.AppendLine("                                <div class=\"history-activity-item\">");
+                    sb.AppendLine($"                                    <div class=\"activity-description\">{HtmlEncode(activity.Description)}</div>");
                     sb.AppendLine("                                </div>");
                 }
 
@@ -568,6 +604,31 @@ public sealed class StatisticsReportService : IStatisticsReportService
             sb.AppendLine($"                    <div class=\"session-rating\"><strong>Rating:</strong> {FormatRating(record.Rating)}</div>");
             sb.AppendLine($"                    <div class=\"session-goal\"><strong>Goal:</strong> {(string.IsNullOrWhiteSpace(record.Goal) ? "No goal set" : HtmlEncode(record.Goal))}</div>");
             sb.AppendLine($"                    <div class=\"session-results\"><strong>Results:</strong> {(string.IsNullOrWhiteSpace(record.Results) ? "No results recorded" : HtmlEncode(record.Results))}</div>");
+            sb.AppendLine("                </div>");
+        }
+
+        sb.AppendLine("            </div>");
+
+        return sb.ToString();
+    }
+
+    private static string GenerateTodaySupplementalActivitiesSection(DailyStatistics todayStats)
+    {
+        var sb = new StringBuilder();
+
+        if (todayStats.SupplementalActivities.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("            <h3 class=\"sessions-header\">Supplemental Activities</h3>");
+        sb.AppendLine("            <div class=\"sessions-list\">");
+
+        foreach (var activity in todayStats.SupplementalActivities)
+        {
+            sb.AppendLine("                <div class=\"activity-card\">");
+            sb.AppendLine($"                    <div class=\"activity-description\">{HtmlEncode(activity.Description)}</div>");
             sb.AppendLine("                </div>");
         }
 

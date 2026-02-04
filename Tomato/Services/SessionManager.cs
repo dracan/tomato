@@ -222,6 +222,18 @@ public sealed class SessionManager : ISessionManager
         PersistState();
     }
 
+    /// <inheritdoc />
+    public void AddSupplementalActivity(string description)
+    {
+        var activity = new SupplementalActivity
+        {
+            Description = description
+        };
+
+        TodayStatistics.AddSupplementalActivity(activity);
+        PersistState();
+    }
+
     /// <summary>
     /// Restores state from persistence.
     /// </summary>

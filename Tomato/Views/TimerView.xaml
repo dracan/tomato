@@ -66,6 +66,7 @@
             <Border.ContextMenu>
                 <ContextMenu DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
                     <MenuItem Header="Add Todo" Command="{Binding ShowTodoInputCommand}"/>
+                    <MenuItem Header="Add Supplemental Activity" Command="{Binding AddSupplementalActivityCommand}"/>
                     <Separator/>
                     <MenuItem Header="Restart" Command="{Binding RestartCommand}"/>
                     <Separator/>

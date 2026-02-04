@@ -36,6 +36,11 @@ public sealed class DailyStatistics
     public List<SessionRecord> SessionRecords { get; } = new();
 
     /// <summary>
+    /// Gets the supplemental activities recorded for this day.
+    /// </summary>
+    public List<SupplementalActivity> SupplementalActivities { get; } = new();
+
+    /// <summary>
     /// Creates a new DailyStatistics instance for the specified date.
     /// </summary>
     /// <param name="date">The date for these statistics.</param>
@@ -82,5 +87,14 @@ public sealed class DailyStatistics
     public void AddSessionRecord(SessionRecord record)
     {
         SessionRecords.Add(record);
+    }
+
+    /// <summary>
+    /// Adds a supplemental activity to this day's statistics.
+    /// </summary>
+    /// <param name="activity">The supplemental activity to add.</param>
+    public void AddSupplementalActivity(SupplementalActivity activity)
+    {
+        SupplementalActivities.Add(activity);
     }
 }

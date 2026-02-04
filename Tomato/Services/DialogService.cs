@@ -72,4 +72,22 @@ public sealed class DialogService : IDialogService
 
         return Task.CompletedTask;
     }
+
+    /// <inheritdoc />
+    public Task<SupplementalActivityDialogResult> ShowSupplementalActivityDialogAsync()
+    {
+        var viewModel = new SupplementalActivityDialogViewModel();
+        var dialog = new SupplementalActivityDialog
+        {
+            DataContext = viewModel,
+            Owner = _owner
+        };
+
+        dialog.ShowDialog();
+
+        var confirmed = viewModel.DialogResult == true;
+        var description = confirmed ? viewModel.Description : null;
+
+        return Task.FromResult(new SupplementalActivityDialogResult(confirmed, description));
+    }
 }

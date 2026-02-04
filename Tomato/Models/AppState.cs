@@ -65,6 +65,7 @@ public sealed class AppState
         public TimeSpan TotalBreakTime { get; set; }
         public int CyclesCompleted { get; set; }
         public List<SessionRecordState> SessionRecords { get; set; } = new();
+        public List<SupplementalActivityState> SupplementalActivities { get; set; } = new();
     }
 
     /// <summary>
@@ -78,6 +79,14 @@ public sealed class AppState
         public TimeSpan Duration { get; set; }
         public DateTime StartedAt { get; set; }
         public DateTime CompletedAt { get; set; }
+    }
+
+    /// <summary>
+    /// Represents a serializable supplemental activity.
+    /// </summary>
+    public sealed class SupplementalActivityState
+    {
+        public string Description { get; set; } = string.Empty;
     }
 
     /// <summary>
@@ -131,6 +140,12 @@ public sealed class AppState
                         StartedAt = r.StartedAt,
                         CompletedAt = r.CompletedAt
                     })
+                    .ToList(),
+                SupplementalActivities = todayStatistics.SupplementalActivities
+                    .Select(a => new SupplementalActivityState
+                    {
+                        Description = a.Description
+                    })
                     .ToList()
             };
         }
@@ -169,13 +184,19 @@ public sealed class AppState
                             StartedAt = r.StartedAt,
                             CompletedAt = r.CompletedAt
                         })
+                        .ToList(),
+                    SupplementalActivities = stat.SupplementalActivities
+                        .Select(a => new SupplementalActivityState
+                        {
+                            Description = a.Description
+                        })
                         .ToList()
                 });
             }
         }
 
         // Add today's statistics if present and has data
-        if (today != null && (today.FocusSessionsCompleted > 0 || today.TotalFocusTime > TimeSpan.Zero))
+        if (today != null && (today.FocusSessionsCompleted > 0 || today.TotalFocusTime > TimeSpan.Zero || today.SupplementalActivities.Count > 0))
         {
             result.Add(new DailyStatisticsState
             {
@@ -193,6 +214,12 @@ public sealed class AppState
                         Duration = r.Duration,
                         StartedAt = r.StartedAt,
                         CompletedAt = r.CompletedAt
+                    })
+                    .ToList(),
+                SupplementalActivities = today.SupplementalActivities
+                    .Select(a => new SupplementalActivityState
+                    {
+                        Description = a.Description
                     })
                     .ToList()
             });
@@ -266,6 +293,14 @@ public sealed class AppState
             });
         }
 
+        foreach (var activityState in TodayStatistics.SupplementalActivities)
+        {
+            stats.AddSupplementalActivity(new SupplementalActivity
+            {
+                Description = activityState.Description
+            });
+        }
+
         return stats;
     }
 
@@ -297,6 +332,14 @@ public sealed class AppState
                     Duration = recordState.Duration,
                     StartedAt = recordState.StartedAt,
                     CompletedAt = recordState.CompletedAt
+                });
+            }
+
+            foreach (var activityState in state.SupplementalActivities)
+            {
+                stats.AddSupplementalActivity(new SupplementalActivity
+                {
+                    Description = activityState.Description
                 });
             }
 
