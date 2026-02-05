@@ -24,6 +24,7 @@ public partial class App : Application
     private ILuxaforConfigurationService? _luxaforConfigService;
     private ILuxaforService? _luxaforService;
     private IUpdateCheckService? _updateCheckService;
+    private ISystemTrayService? _systemTrayService;
 
     // ViewModels
     private TimerViewModel? _timerViewModel;
@@ -97,6 +98,10 @@ public partial class App : Application
         _timerViewModel = new TimerViewModel(_sessionManager, _dialogService, _statisticsReportService);
         _mainViewModel = new MainViewModel(_timerViewModel);
 
+        // Create and initialize system tray service
+        _systemTrayService = new SystemTrayService(_sessionManager);
+        _systemTrayService.Initialize(mainWindow, _timerViewModel);
+
         // Set DataContext and show window
         mainWindow.DataContext = _mainViewModel;
         mainWindow.Show();
@@ -135,6 +140,7 @@ public partial class App : Application
         (_slackService as IDisposable)?.Dispose();
         (_luxaforService as IDisposable)?.Dispose();
         _updateCheckService?.Dispose();
+        _systemTrayService?.Dispose();
 
         base.OnExit(e);
     }

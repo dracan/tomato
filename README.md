@@ -20,6 +20,7 @@ A minimal Windows desktop Pomodoro timer.
 - Sound notifications on session completion
 - State persistence across restarts
 - Compact, always-on-top window
+- System tray icon with color-coded session state and context menu
 - Slack integration - automatically sets status and enables Do Not Disturb during focus sessions
 
 ## Screenshots
