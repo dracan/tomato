@@ -271,6 +271,7 @@ public partial class TimerViewModel : ObservableObject
         if (result.Confirmed && (!string.IsNullOrWhiteSpace(result.Results) || result.Rating.HasValue))
         {
             _sessionManager.RecordSessionResults(result.Results, result.Rating);
+            SyncCompletedSessionRecords(forceRefresh: true);
         }
 
         // Clear the goal and todos after the session is complete
@@ -313,12 +314,12 @@ public partial class TimerViewModel : ObservableObject
         SyncCompletedSessionRecords();
     }
 
-    private void SyncCompletedSessionRecords()
+    private void SyncCompletedSessionRecords(bool forceRefresh = false)
     {
         var records = _sessionManager.TodayStatistics.SessionRecords;
 
-        // Only update if counts differ (new sessions added)
-        if (CompletedSessionRecords.Count != records.Count)
+        // Update if counts differ (new sessions added) or forced (e.g. after rating update)
+        if (forceRefresh || CompletedSessionRecords.Count != records.Count)
         {
             CompletedSessionRecords.Clear();
             foreach (var record in records)
