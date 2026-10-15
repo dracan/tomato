@@ -30,10 +30,60 @@ public partial class App : Application
     private TimerViewModel? _timerViewModel;
     private MainViewModel? _mainViewModel;
 
+    private readonly ErrorLog _errorLog = new();
+
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
+        DispatcherUnhandledException += OnDispatcherUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
+        TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+
+        try
+        {
+            await StartAsync(e);
+        }
+        catch (Exception ex)
+        {
+            _errorLog.Log(ex, "Startup");
+            MessageBox.Show(
+                $"Tomato couldn't start.\n\n{ex.Message}\n\nDetails were written to {_errorLog.LogFilePath}",
+                "Tomato",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown(1);
+        }
+    }
+
+    private void OnDispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+    {
+        // Keep the app (and the running session) alive rather than crashing
+        _errorLog.Log(e.Exception, "UI");
+        e.Handled = true;
+        MessageBox.Show(
+            $"Something went wrong: {e.Exception.Message}\n\nDetails were written to {_errorLog.LogFilePath}",
+            "Tomato",
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
+    }
+
+    private void OnDomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
+    {
+        if (e.ExceptionObject is Exception ex)
+        {
+            _errorLog.Log(ex, "Background thread (fatal)");
+        }
+    }
+
+    private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+    {
+        _errorLog.Log(e.Exception, "Background task");
+        e.SetObserved();
+    }
+
+    private async Task StartAsync(StartupEventArgs e)
+    {
         // Check for setup arguments
         var args = e.Args;
         var isSlackSetup = args.Contains("--setup-slack");
