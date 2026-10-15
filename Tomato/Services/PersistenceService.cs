@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Tomato.Models;
@@ -19,6 +19,10 @@ public sealed class PersistenceService : IPersistenceService
     };
 
     private readonly string _dataDirectory;
+    private readonly SemaphoreSlim _saveLock = new(1, 1);
+    private long _latestSaveVersion;
+    private long _writtenSaveVersion;
+    private bool _savingDisabled;
 
     /// <inheritdoc />
     public string StateFilePath { get; }
@@ -41,15 +45,48 @@ public sealed class PersistenceService : IPersistenceService
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// Saves are serialized, and a save that was overtaken by a newer one is skipped.
+    /// The file is written to a temporary file first and then moved over the old one,
+    /// so a crash mid-save never leaves a truncated state file.
+    /// </remarks>
     public async Task SaveAsync(AppState state)
     {
-        EnsureDirectoryExists();
-
         var json = JsonSerializer.Serialize(state, JsonOptions);
-        await File.WriteAllTextAsync(StateFilePath, json);
+        var version = Interlocked.Increment(ref _latestSaveVersion);
+
+        await _saveLock.WaitAsync();
+        try
+        {
+            if (_savingDisabled || version < _writtenSaveVersion)
+                return;
+
+            EnsureDirectoryExists();
+
+            var tempPath = StateFilePath + ".tmp";
+            await using (var stream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
+            await using (var writer = new StreamWriter(stream))
+            {
+                await writer.WriteAsync(json);
+                await writer.FlushAsync();
+                stream.Flush(flushToDisk: true);
+            }
+
+            File.Move(tempPath, StateFilePath, overwrite: true);
+            _writtenSaveVersion = version;
+        }
+        finally
+        {
+            _saveLock.Release();
+        }
     }
 
     /// <inheritdoc />
+    /// <remarks>
+    /// A corrupt file is renamed to state.corrupt-{timestamp}.json so its history can be
+    /// recovered by hand. If the file exists but cannot be read, saving is disabled for
+    /// this run so the unread history is not overwritten.
+    /// </remarks>
     public async Task<AppState?> LoadAsync()
     {
         if (!File.Exists(StateFilePath))
@@ -57,15 +94,41 @@ public sealed class PersistenceService : IPersistenceService
             return null;
         }
 
+        string json;
         try
         {
-            var json = await File.ReadAllTextAsync(StateFilePath);
-            return JsonSerializer.Deserialize<AppState>(json, JsonOptions);
+            json = await File.ReadAllTextAsync(StateFilePath);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _savingDisabled = true;
+            return null;
+        }
+
+        try
+        {
+            var state = JsonSerializer.Deserialize<AppState>(json, JsonOptions);
+            if (state != null)
+                return state;
         }
         catch (JsonException)
         {
-            // File is corrupted, return null
-            return null;
+        }
+
+        MoveCorruptFileAside();
+        return null;
+    }
+
+    private void MoveCorruptFileAside()
+    {
+        var backupPath = Path.Combine(_dataDirectory, $"state.corrupt-{DateTime.Now:yyyyMMdd-HHmmss}.json");
+        try
+        {
+            File.Move(StateFilePath, backupPath, overwrite: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _savingDisabled = true;
         }
     }
 

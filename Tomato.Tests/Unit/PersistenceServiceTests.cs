@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using FluentAssertions;
 using Tomato.Models;
 using Tomato.Services;
@@ -194,6 +194,88 @@ public class PersistenceServiceTests : IAsyncLifetime
 
         // Assert
         result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task LoadAsync_CorruptedFile_IsKeptAsBackupAndNotOverwritten()
+    {
+        // Arrange
+        await File.WriteAllTextAsync(_sut.StateFilePath, "not valid json {{{", TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _sut.LoadAsync();
+        await _sut.SaveAsync(CreateTestState());
+
+        // Assert
+        result.Should().BeNull();
+        var backups = Directory.GetFiles(_testDirectory, "state.corrupt-*.json");
+        backups.Should().ContainSingle();
+        (await File.ReadAllTextAsync(backups[0], TestContext.Current.CancellationToken))
+            .Should().Be("not valid json {{{");
+    }
+
+    [Fact]
+    public async Task LoadAsync_EmptyFile_IsKeptAsBackup()
+    {
+        // Arrange - e.g. power loss during a save
+        await File.WriteAllTextAsync(_sut.StateFilePath, "", TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _sut.LoadAsync();
+
+        // Assert
+        result.Should().BeNull();
+        Directory.GetFiles(_testDirectory, "state.corrupt-*.json").Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task LoadAsync_UnreadableFile_ReturnsNullAndDoesNotOverwriteItLater()
+    {
+        // Arrange - another process (antivirus, sync client) holds the file exclusively
+        var original = CreateTestState();
+        original.Cycle.CompletedFocusSessions = 3;
+        await _sut.SaveAsync(original);
+
+        AppState? result;
+        await using (new FileStream(_sut.StateFilePath, FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            // Act
+            result = await _sut.LoadAsync();
+        }
+
+        await _sut.SaveAsync(CreateTestState());
+
+        // Assert - nothing loaded, and the unread history was not replaced
+        result.Should().BeNull();
+        var reloaded = await new PersistenceService(_testDirectory).LoadAsync();
+        reloaded!.Cycle.CompletedFocusSessions.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task SaveAsync_DoesNotLeaveTemporaryFiles()
+    {
+        // Act
+        await _sut.SaveAsync(CreateTestState());
+
+        // Assert
+        Directory.GetFiles(_testDirectory).Should().ContainSingle()
+            .Which.Should().Be(_sut.StateFilePath);
+    }
+
+    [Fact]
+    public async Task SaveAsync_ConcurrentSaves_AllSucceedAndLastOneWins()
+    {
+        // Arrange
+        var states = Enumerable.Range(1, 20)
+            .Select(i => new AppState { Cycle = new AppState.CycleState { CompletedFocusSessions = i } })
+            .ToList();
+
+        // Act
+        await Task.WhenAll(states.Select(_sut.SaveAsync));
+        var result = await _sut.LoadAsync();
+
+        // Assert
+        result!.Cycle.CompletedFocusSessions.Should().Be(20);
     }
 
     private static AppState CreateTestState()
