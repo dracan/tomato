@@ -198,7 +198,7 @@ public sealed class AppState
         }
 
         // Add today's statistics if present and has data
-        if (today != null && (today.FocusSessionsCompleted > 0 || today.TotalFocusTime > TimeSpan.Zero || today.SupplementalActivities.Count > 0))
+        if (today is { HasData: true })
         {
             result.Add(new DailyStatisticsState
             {

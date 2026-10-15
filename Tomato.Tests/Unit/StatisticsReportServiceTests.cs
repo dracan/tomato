@@ -279,6 +279,22 @@ public class StatisticsReportServiceTests : IDisposable
     }
 
     [Fact]
+    public void GenerateReport_BreakOnlyDay_IsShownInHistoryTable()
+    {
+        // Arrange
+        var todayStats = DailyStatistics.Create(new DateOnly(2024, 1, 15));
+        todayStats.RecordBreakSession(TimeSpan.FromMinutes(10));
+        _sessionManager.TodayStatistics.Returns(todayStats);
+
+        // Act
+        _sut.GenerateReport();
+
+        // Assert
+        var html = File.ReadAllText(Path.Combine(_testReportsDirectory, "stats.html"));
+        html.Should().Contain("<td>2024-01-15</td>");
+    }
+
+    [Fact]
     public void GenerateReport_OnNonEnglishSystem_UsesEnglishDatesAndTimes()
     {
         // Arrange - German formats have no AM/PM and German month names

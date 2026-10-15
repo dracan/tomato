@@ -482,7 +482,7 @@ public sealed class StatisticsReportService : IStatisticsReportService
         var allDays = new List<DailyStatistics>();
 
         // Add today if it has data
-        if (todayStats.FocusSessionsCompleted > 0 || todayStats.TotalFocusTime > TimeSpan.Zero || todayStats.SupplementalActivities.Count > 0)
+        if (todayStats.HasData)
         {
             allDays.Add(todayStats);
         }
