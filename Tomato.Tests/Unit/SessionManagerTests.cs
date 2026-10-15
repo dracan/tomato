@@ -357,6 +357,25 @@ public class SessionManagerTests
     #region Cancel
 
     [Fact]
+    public void StartingASession_WhilePaused_CancelsThePausedSession()
+    {
+        // Arrange
+        _sut.StartFocus("Write report");
+        _sut.Pause();
+        var paused = _sut.CurrentSession!;
+        var events = new List<SessionStateChangedEventArgs>();
+        _sut.SessionStateChanged += (_, e) => events.Add(e);
+
+        // Act
+        _sut.StartBreak();
+
+        // Assert - subscribers (Slack, Luxafor, tray) see the paused session end
+        paused.Status.Should().Be(SessionStatus.Cancelled);
+        events.Should().Contain(e => e.Session == paused && e.NewStatus == SessionStatus.Cancelled);
+        events.Last().NewStatus.Should().Be(SessionStatus.Running);
+    }
+
+    [Fact]
     public void Cancel_SetsSessionStatusToCancelled()
     {
         // Arrange

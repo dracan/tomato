@@ -67,86 +67,22 @@ public sealed class SessionManager : ISessionManager
     public void StartFocus() => StartFocus(goal: null);
 
     /// <inheritdoc />
-    public void StartFocus(string? goal)
-    {
-        // Cancel any existing session
-        if (CurrentSession?.Status == SessionStatus.Running)
-        {
-            CancelInternal();
-        }
-
-        CurrentSession = Session.CreateFocus(goal);
-        CurrentSession.Status = SessionStatus.Running;
-        CurrentSession.StartedAt = _dateTimeProvider.Now;
-
-        _timerService.Start(CurrentSession.Duration);
-
-        RaiseSessionStateChanged(SessionStatus.NotStarted, SessionStatus.Running);
-        PersistState();
-    }
+    public void StartFocus(string? goal) => StartSession(Session.CreateFocus(goal));
 
     /// <inheritdoc />
     public void StartFocus(TimeSpan duration) => StartFocus(duration, goal: null);
 
     /// <inheritdoc />
-    public void StartFocus(TimeSpan duration, string? goal)
-    {
-        // Cancel any existing session
-        if (CurrentSession?.Status == SessionStatus.Running)
-        {
-            CancelInternal();
-        }
-
-        CurrentSession = Session.CreateFocus(duration, goal);
-        CurrentSession.Status = SessionStatus.Running;
-        CurrentSession.StartedAt = _dateTimeProvider.Now;
-
-        _timerService.Start(CurrentSession.Duration);
-
-        RaiseSessionStateChanged(SessionStatus.NotStarted, SessionStatus.Running);
-        PersistState();
-    }
+    public void StartFocus(TimeSpan duration, string? goal) => StartSession(Session.CreateFocus(duration, goal));
 
     /// <inheritdoc />
-    public void StartBreak() => StartBreak(Session.CreateShortBreak().Duration);
+    public void StartBreak() => StartSession(Session.CreateShortBreak());
 
     /// <inheritdoc />
-    public void StartBreak(TimeSpan duration)
-    {
-        // Cancel any existing session
-        if (CurrentSession?.Status == SessionStatus.Running)
-        {
-            CancelInternal();
-        }
-
-        CurrentSession = Session.CreateShortBreak(duration);
-        CurrentSession.Status = SessionStatus.Running;
-        CurrentSession.StartedAt = _dateTimeProvider.Now;
-
-        _timerService.Start(CurrentSession.Duration);
-
-        RaiseSessionStateChanged(SessionStatus.NotStarted, SessionStatus.Running);
-        PersistState();
-    }
+    public void StartBreak(TimeSpan duration) => StartSession(Session.CreateShortBreak(duration));
 
     /// <inheritdoc />
-    public void StartLongBreak()
-    {
-        // Cancel any existing session
-        if (CurrentSession?.Status == SessionStatus.Running)
-        {
-            CancelInternal();
-        }
-
-        CurrentSession = Session.CreateLongBreak();
-        CurrentSession.Status = SessionStatus.Running;
-        CurrentSession.StartedAt = _dateTimeProvider.Now;
-
-        _timerService.Start(CurrentSession.Duration);
-
-        RaiseSessionStateChanged(SessionStatus.NotStarted, SessionStatus.Running);
-        PersistState();
-    }
+    public void StartLongBreak() => StartSession(Session.CreateLongBreak());
 
     /// <inheritdoc />
     public void Pause()
@@ -306,6 +242,24 @@ public sealed class SessionManager : ISessionManager
         }
 
         _todayStatistics = DailyStatistics.Create(today);
+    }
+
+    private void StartSession(Session session)
+    {
+        // End any unfinished session so subscribers see it cancelled
+        if (CurrentSession?.Status is SessionStatus.Running or SessionStatus.Paused)
+        {
+            CancelInternal();
+        }
+
+        CurrentSession = session;
+        CurrentSession.Status = SessionStatus.Running;
+        CurrentSession.StartedAt = _dateTimeProvider.Now;
+
+        _timerService.Start(CurrentSession.Duration);
+
+        RaiseSessionStateChanged(SessionStatus.NotStarted, SessionStatus.Running);
+        PersistState();
     }
 
     private void CancelInternal()
