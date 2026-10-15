@@ -484,6 +484,30 @@ public class SessionManagerTests
     }
 
     [Fact]
+    public void StartBreak_WithDuration_CreatesShortBreakWithThatDuration()
+    {
+        // Act
+        _sut.StartBreak(TimeSpan.FromMinutes(10));
+
+        // Assert
+        _sut.CurrentSession.Should().NotBeNull();
+        _sut.CurrentSession!.Type.Should().Be(SessionType.ShortBreak);
+        _sut.CurrentSession.Duration.Should().Be(TimeSpan.FromMinutes(10));
+        _sut.CurrentSession.Status.Should().Be(SessionStatus.Running);
+        _timerService.Received(1).Start(TimeSpan.FromMinutes(10));
+    }
+
+    [Fact]
+    public void StartBreak_WithDuration_PersistsState()
+    {
+        // Act
+        _sut.StartBreak(TimeSpan.FromMinutes(10));
+
+        // Assert
+        _persistenceService.Received(1).SaveAsync(Arg.Any<AppState>());
+    }
+
+    [Fact]
     public void OnBreakCompleted_RecordsBreakTimeInStatistics()
     {
         // Arrange

@@ -158,6 +158,17 @@ public partial class TimerViewModel : ObservableObject
     }
 
     [RelayCommand]
+    private void StartBreakWithDuration(string minutesString)
+    {
+        if (!int.TryParse(minutesString, out var minutes))
+        {
+            return;
+        }
+
+        _sessionManager.StartBreak(TimeSpan.FromMinutes(minutes));
+    }
+
+    [RelayCommand]
     private void StartLongBreak()
     {
         _sessionManager.StartLongBreak();

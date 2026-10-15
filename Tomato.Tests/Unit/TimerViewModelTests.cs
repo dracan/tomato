@@ -372,6 +372,26 @@ public class TimerViewModelTests
     }
 
     [Fact]
+    public void StartBreakWithDurationCommand_StartsBreakWithDuration()
+    {
+        // Act
+        _sut.StartBreakWithDurationCommand.Execute("10");
+
+        // Assert
+        _sessionManager.Received(1).StartBreak(TimeSpan.FromMinutes(10));
+    }
+
+    [Fact]
+    public void StartBreakWithDurationCommand_WithInvalidMinutes_DoesNotStartBreak()
+    {
+        // Act
+        _sut.StartBreakWithDurationCommand.Execute("abc");
+
+        // Assert
+        _sessionManager.DidNotReceive().StartBreak(Arg.Any<TimeSpan>());
+    }
+
+    [Fact]
     public void SessionLabel_ShowsShortBreak_ForShortBreakSession()
     {
         // Arrange

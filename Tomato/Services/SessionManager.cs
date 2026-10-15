@@ -95,7 +95,10 @@ public sealed class SessionManager : ISessionManager
     }
 
     /// <inheritdoc />
-    public void StartBreak()
+    public void StartBreak() => StartBreak(Session.CreateShortBreak().Duration);
+
+    /// <inheritdoc />
+    public void StartBreak(TimeSpan duration)
     {
         // Cancel any existing session
         if (CurrentSession?.Status == SessionStatus.Running)
@@ -103,7 +106,7 @@ public sealed class SessionManager : ISessionManager
             CancelInternal();
         }
 
-        CurrentSession = Session.CreateShortBreak();
+        CurrentSession = Session.CreateShortBreak(duration);
         CurrentSession.Status = SessionStatus.Running;
         CurrentSession.StartedAt = _dateTimeProvider.Now;
 

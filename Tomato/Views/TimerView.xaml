@@ -75,6 +75,7 @@
                     <MenuItem Header="10 minutes" Command="{Binding StartFocusWithDurationCommand}" CommandParameter="10"/>
                     <MenuItem Header="5 minutes" Command="{Binding StartFocusWithDurationCommand}" CommandParameter="5"/>
                     <Separator/>
+                    <MenuItem Header="Break (10 min)" Command="{Binding StartBreakWithDurationCommand}" CommandParameter="10"/>
                     <MenuItem Header="Long Break (15 min)" Command="{Binding StartLongBreakCommand}"/>
                     <Separator/>
                     <MenuItem Header="View Stats" Command="{Binding ViewStatsCommand}"/>

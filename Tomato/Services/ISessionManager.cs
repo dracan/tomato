@@ -95,6 +95,12 @@ public interface ISessionManager
     void StartBreak();
 
     /// <summary>
+    /// Starts a short break session with the specified duration.
+    /// </summary>
+    /// <param name="duration">The duration for the break session.</param>
+    void StartBreak(TimeSpan duration);
+
+    /// <summary>
     /// Starts a long break session (15 minutes).
     /// </summary>
     void StartLongBreak();

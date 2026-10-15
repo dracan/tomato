@@ -201,6 +201,14 @@ public sealed class SystemTrayService : ISystemTrayService
 
         menu.Items.Add(new ToolStripSeparator());
 
+        // Break
+        var breakItem = new ToolStripMenuItem("Break (10 min)");
+        breakItem.Click += (_, _) => _mainWindow?.Dispatcher.Invoke(() =>
+        {
+            _timerViewModel?.StartBreakWithDurationCommand.Execute("10");
+        });
+        menu.Items.Add(breakItem);
+
         // Long Break
         var longBreakItem = new ToolStripMenuItem("Long Break (15 min)");
         longBreakItem.Click += (_, _) => _mainWindow?.Dispatcher.Invoke(() =>
