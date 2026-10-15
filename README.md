@@ -19,7 +19,7 @@ A minimal Windows desktop Pomodoro timer.
   - All-time totals
   - Daily history with expandable session details
 - Sound notifications on session completion
-- State persistence across restarts
+- State persistence across restarts (a session running when the app closes is restored as paused)
 - Compact, always-on-top window
 - System tray icon with color-coded session state and context menu
 - Slack integration - automatically sets status and enables Do Not Disturb during focus sessions
@@ -78,11 +78,11 @@ Tomato can automatically update your Slack status and enable Do Not Disturb when
 
 ### Behavior
 
-- **Focus session starts**: Status changes to 🍅 "Focus time" and DND is enabled
-- **Focus session ends**: Status is cleared and DND is disabled
+- **Focus session starts or resumes**: Status changes to 🍅 "Focus time" and DND is enabled, both set to expire when the session would end
+- **Focus session is paused, ends, or the app exits**: Status is cleared and DND is disabled
 - **Breaks**: No changes to Slack status
 
-Your token is stored encrypted using Windows DPAPI at `%LOCALAPPDATA%\Tomato\slack.json`.
+Your token is stored encrypted using Windows DPAPI at `%LOCALAPPDATA%\Tomato\slack.json`. If Slack rejects an update, the reason is written to `%LOCALAPPDATA%\Tomato\error.log`.
 
 ## Download
 
