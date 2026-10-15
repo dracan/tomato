@@ -1,4 +1,4 @@
-namespace Tomato.Models;
+﻿namespace Tomato.Models;
 
 /// <summary>
 /// Aggregates daily productivity statistics.
@@ -39,6 +39,15 @@ public sealed class DailyStatistics
     /// Gets the supplemental activities recorded for this day.
     /// </summary>
     public List<SupplementalActivity> SupplementalActivities { get; } = new();
+
+    /// <summary>
+    /// Gets whether anything was recorded on this day.
+    /// </summary>
+    public bool HasData =>
+        FocusSessionsCompleted > 0 ||
+        TotalFocusTime > TimeSpan.Zero ||
+        TotalBreakTime > TimeSpan.Zero ||
+        SupplementalActivities.Count > 0;
 
     /// <summary>
     /// Creates a new DailyStatistics instance for the specified date.

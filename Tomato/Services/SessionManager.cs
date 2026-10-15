@@ -1,4 +1,4 @@
-using Tomato.Models;
+﻿using Tomato.Models;
 
 namespace Tomato.Services;
 
@@ -12,6 +12,7 @@ public sealed class SessionManager : ISessionManager
     private readonly IPersistenceService _persistenceService;
     private readonly IDateTimeProvider _dateTimeProvider;
     private List<DailyStatistics> _statisticsHistory = new();
+    private DailyStatistics _todayStatistics;
     private SessionRecord? _lastCompletedSessionRecord;
 
     /// <inheritdoc />
@@ -27,7 +28,19 @@ public sealed class SessionManager : ISessionManager
     public PomodoroCycle Cycle { get; private set; }
 
     /// <inheritdoc />
-    public DailyStatistics TodayStatistics { get; private set; }
+    /// <remarks>
+    /// When the date has changed since the statistics were created (the app ran past
+    /// midnight), the previous day is moved into history and a fresh day is started.
+    /// </remarks>
+    public DailyStatistics TodayStatistics
+    {
+        get
+        {
+            RollOverToNewDayIfNeeded();
+            return _todayStatistics;
+        }
+        private set => _todayStatistics = value;
+    }
 
     /// <inheritdoc />
     public IReadOnlyList<DailyStatistics> StatisticsHistory => _statisticsHistory;
@@ -44,7 +57,7 @@ public sealed class SessionManager : ISessionManager
         _dateTimeProvider = dateTimeProvider;
 
         Cycle = new PomodoroCycle();
-        TodayStatistics = DailyStatistics.Create(_dateTimeProvider.Today);
+        _todayStatistics = DailyStatistics.Create(_dateTimeProvider.Today);
 
         _timerService.Tick += OnTimerTick;
         _timerService.Completed += OnTimerCompleted;
@@ -269,6 +282,21 @@ public sealed class SessionManager : ISessionManager
             CurrentSession = restoredSession;
             RaiseSessionStateChanged(SessionStatus.NotStarted, SessionStatus.Paused);
         }
+    }
+
+    private void RollOverToNewDayIfNeeded()
+    {
+        var today = _dateTimeProvider.Today;
+        if (_todayStatistics.Date == today)
+            return;
+
+        if (_todayStatistics.HasData)
+        {
+            _statisticsHistory.RemoveAll(s => s.Date == _todayStatistics.Date);
+            _statisticsHistory.Add(_todayStatistics);
+        }
+
+        _todayStatistics = DailyStatistics.Create(today);
     }
 
     private void CancelInternal()

@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using NSubstitute;
 using Tomato.Models;
 using Tomato.Services;
@@ -927,4 +927,91 @@ public class SessionManagerTests
     }
 
     #endregion
+
+    #region Day Rollover
+
+    [Fact]
+    public void TodayStatistics_AfterMidnight_StartsFreshDayAndKeepsYesterdayInHistory()
+    {
+        // Arrange - complete a focus session on day 1
+        var day1 = new DateOnly(2026, 3, 2);
+        _dateTimeProvider.Today.Returns(day1);
+        var sut = CreateSut();
+        sut.StartFocus();
+        _timerService.Completed += Raise.Event();
+
+        // Act - the app keeps running past midnight
+        _dateTimeProvider.Today.Returns(day1.AddDays(1));
+        var today = sut.TodayStatistics;
+
+        // Assert
+        today.Date.Should().Be(day1.AddDays(1));
+        today.FocusSessionsCompleted.Should().Be(0);
+        sut.StatisticsHistory.Should().ContainSingle(s => s.Date == day1)
+            .Which.FocusSessionsCompleted.Should().Be(1);
+    }
+
+    [Fact]
+    public void OnTimerCompleted_AfterMidnight_RecordsSessionInNewDay()
+    {
+        // Arrange - start a focus session on day 1
+        var day1 = new DateOnly(2026, 3, 2);
+        _dateTimeProvider.Today.Returns(day1);
+        var sut = CreateSut();
+        sut.StartFocus();
+
+        // Act - it completes after midnight
+        _dateTimeProvider.Today.Returns(day1.AddDays(1));
+        _timerService.Completed += Raise.Event();
+
+        // Assert
+        sut.TodayStatistics.Date.Should().Be(day1.AddDays(1));
+        sut.TodayStatistics.FocusSessionsCompleted.Should().Be(1);
+    }
+
+    [Fact]
+    public void PersistState_AfterMidnight_SavesYesterdayInHistory()
+    {
+        // Arrange - complete a focus session on day 1
+        var day1 = new DateOnly(2026, 3, 2);
+        _dateTimeProvider.Today.Returns(day1);
+        var sut = CreateSut();
+        sut.StartFocus();
+        _timerService.Completed += Raise.Event();
+        AppState? saved = null;
+        _persistenceService.SaveAsync(Arg.Do<AppState>(s => saved = s));
+
+        // Act - something is saved the next day
+        _dateTimeProvider.Today.Returns(day1.AddDays(1));
+        sut.AddSupplementalActivity("Code review");
+
+        // Assert
+        saved.Should().NotBeNull();
+        saved!.TodayStatistics!.Date.Should().Be(day1.AddDays(1));
+        saved.StatisticsHistory.Should().Contain(s => s.Date == day1 && s.FocusSessionsCompleted == 1);
+    }
+
+    [Fact]
+    public void TodayStatistics_AfterIdleMidnight_DoesNotAddEmptyDayToHistory()
+    {
+        // Arrange
+        var day1 = new DateOnly(2026, 3, 2);
+        _dateTimeProvider.Today.Returns(day1);
+        var sut = CreateSut();
+
+        // Act
+        _dateTimeProvider.Today.Returns(day1.AddDays(1));
+        _ = sut.TodayStatistics;
+
+        // Assert
+        sut.StatisticsHistory.Should().BeEmpty();
+    }
+
+    #endregion
+
+    private SessionManager CreateSut() => new(
+        _timerService,
+        _notificationService,
+        _persistenceService,
+        _dateTimeProvider);
 }
