@@ -90,6 +90,7 @@ public partial class TimerViewModel : ObservableObject
         OnPropertyChanged(nameof(CanShowTodoInput));
         RestartCommand.NotifyCanExecuteChanged();
         ShowTodoInputCommand.NotifyCanExecuteChanged();
+        AddTodoCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnIsPausedChanged(bool value)
@@ -98,6 +99,7 @@ public partial class TimerViewModel : ObservableObject
         OnPropertyChanged(nameof(CanShowTodoInput));
         RestartCommand.NotifyCanExecuteChanged();
         ShowTodoInputCommand.NotifyCanExecuteChanged();
+        AddTodoCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnCurrentGoalChanged(string? value) => OnPropertyChanged(nameof(GoalTooltip));
@@ -106,6 +108,7 @@ public partial class TimerViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(CanShowTodoInput));
         ShowTodoInputCommand.NotifyCanExecuteChanged();
+        AddTodoCommand.NotifyCanExecuteChanged();
     }
 
     public TimerViewModel(ISessionManager sessionManager, IDialogService dialogService, IStatisticsReportService statisticsReportService)
@@ -128,7 +131,7 @@ public partial class TimerViewModel : ObservableObject
         var result = await _dialogService.ShowGoalDialogAsync();
         if (result.Confirmed)
         {
-            ClearCapturedTodos();
+            await FinishPendingFocusWorkAsync();
             CurrentGoal = result.Goal;
             _sessionManager.StartFocus(result.Goal);
         }
@@ -145,32 +148,35 @@ public partial class TimerViewModel : ObservableObject
         var result = await _dialogService.ShowGoalDialogAsync();
         if (result.Confirmed)
         {
-            ClearCapturedTodos();
+            await FinishPendingFocusWorkAsync();
             CurrentGoal = result.Goal;
             _sessionManager.StartFocus(TimeSpan.FromMinutes(minutes), result.Goal);
         }
     }
 
     [RelayCommand]
-    private void StartBreak()
+    private async Task StartBreakAsync()
     {
+        await FinishPendingFocusWorkAsync();
         _sessionManager.StartBreak();
     }
 
     [RelayCommand]
-    private void StartBreakWithDuration(string minutesString)
+    private async Task StartBreakWithDurationAsync(string minutesString)
     {
         if (!int.TryParse(minutesString, out var minutes))
         {
             return;
         }
 
+        await FinishPendingFocusWorkAsync();
         _sessionManager.StartBreak(TimeSpan.FromMinutes(minutes));
     }
 
     [RelayCommand]
-    private void StartLongBreak()
+    private async Task StartLongBreakAsync()
     {
+        await FinishPendingFocusWorkAsync();
         _sessionManager.StartLongBreak();
     }
 
@@ -189,16 +195,25 @@ public partial class TimerViewModel : ObservableObject
     [RelayCommand]
     private async Task CancelAsync()
     {
-        // If cancelling a focus session with captured todos, show them first
-        if (CurrentSessionType == SessionType.Focus && CapturedTodos.Count > 0)
+        await FinishPendingFocusWorkAsync();
+        _sessionManager.Cancel();
+        ResetToDefault();
+    }
+
+    /// <summary>
+    /// Called before the current session is cancelled or replaced: shows any todos
+    /// captured during an unfinished focus session so they aren't lost, then clears
+    /// them and the goal.
+    /// </summary>
+    private async Task FinishPendingFocusWorkAsync()
+    {
+        if (CapturedTodos.Count > 0)
         {
-            var todos = CapturedTodos.ToList().AsReadOnly();
-            await _dialogService.ShowTodosDialogAsync(todos);
+            await _dialogService.ShowTodosDialogAsync(CapturedTodos.ToList().AsReadOnly());
         }
 
-        _sessionManager.Cancel();
         ClearCapturedTodos();
-        ResetToDefault();
+        CurrentGoal = null;
     }
 
     [RelayCommand]
@@ -235,7 +250,7 @@ public partial class TimerViewModel : ObservableObject
         IsTodoInputVisible = true;
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanShowTodoInput))]
     private void AddTodo()
     {
         if (string.IsNullOrWhiteSpace(NewTodoText))
@@ -324,6 +339,11 @@ public partial class TimerViewModel : ObservableObject
         IsRunning = status == SessionStatus.Running;
         IsPaused = status == SessionStatus.Paused;
         IsSessionComplete = status == SessionStatus.Completed;
+
+        if (!CanShowTodoInput)
+        {
+            CancelTodoInput();
+        }
     }
 
     private void UpdateFromSessionManager()

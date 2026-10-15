@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using NSubstitute;
 using Tomato.Models;
 using Tomato.Services;
@@ -380,6 +380,112 @@ public class TimerViewModelTodoTests
 
         // Assert - todos dialog should NOT have been shown (break session)
         await _dialogService.DidNotReceive().ShowTodosDialogAsync(Arg.Any<IReadOnlyList<TodoItem>>());
+    }
+
+    #endregion
+
+    #region Pending Todos When Switching Sessions
+
+    [Fact]
+    public async Task StartBreakCommand_WithPendingTodos_ShowsThemThenClearsTodosAndGoal()
+    {
+        // Arrange - a focus session with a goal and a captured todo
+        _sut.CurrentGoal = "Write report";
+        _sut.NewTodoText = "Email Sam";
+        _sut.AddTodoCommand.Execute(null);
+
+        // Act
+        await _sut.StartBreakCommand.ExecuteAsync(null);
+
+        // Assert
+        await _dialogService.Received(1).ShowTodosDialogAsync(
+            Arg.Is<IReadOnlyList<TodoItem>>(t => t.Count == 1 && t[0].Text == "Email Sam"));
+        _sut.CapturedTodos.Should().BeEmpty();
+        _sut.CurrentGoal.Should().BeNull();
+        _sessionManager.Received(1).StartBreak();
+    }
+
+    [Fact]
+    public async Task StartBreakWithDurationCommand_WithPendingTodos_ShowsThemAndClearsGoal()
+    {
+        // Arrange
+        _sut.CurrentGoal = "Write report";
+        _sut.NewTodoText = "Email Sam";
+        _sut.AddTodoCommand.Execute(null);
+
+        // Act
+        await _sut.StartBreakWithDurationCommand.ExecuteAsync("10");
+
+        // Assert
+        await _dialogService.Received(1).ShowTodosDialogAsync(Arg.Any<IReadOnlyList<TodoItem>>());
+        _sut.CapturedTodos.Should().BeEmpty();
+        _sut.CurrentGoal.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task StartLongBreakCommand_WithPendingTodos_ShowsThemAndClearsGoal()
+    {
+        // Arrange
+        _sut.CurrentGoal = "Write report";
+        _sut.NewTodoText = "Email Sam";
+        _sut.AddTodoCommand.Execute(null);
+
+        // Act
+        await _sut.StartLongBreakCommand.ExecuteAsync(null);
+
+        // Assert
+        await _dialogService.Received(1).ShowTodosDialogAsync(Arg.Any<IReadOnlyList<TodoItem>>());
+        _sut.CapturedTodos.Should().BeEmpty();
+        _sut.CurrentGoal.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task StartFocusCommand_WithPendingTodos_ShowsThemBeforeClearing()
+    {
+        // Arrange
+        _sut.NewTodoText = "Email Sam";
+        _sut.AddTodoCommand.Execute(null);
+
+        // Act
+        await _sut.StartFocusCommand.ExecuteAsync(null);
+
+        // Assert
+        await _dialogService.Received(1).ShowTodosDialogAsync(Arg.Any<IReadOnlyList<TodoItem>>());
+        _sut.CapturedTodos.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CancelCommand_ClearsGoal()
+    {
+        // Arrange
+        _sut.CurrentGoal = "Write report";
+
+        // Act
+        await _sut.CancelCommand.ExecuteAsync(null);
+
+        // Assert
+        _sut.CurrentGoal.Should().BeNull();
+    }
+
+    [Fact]
+    public void WhenSessionCompletes_HidesTodoInput()
+    {
+        // Arrange - the todo input is open during a focus session
+        var session = Session.CreateFocus();
+        session.Status = SessionStatus.Running;
+        _sessionManager.SessionStateChanged += Raise.EventWith(
+            new SessionStateChangedEventArgs(session, SessionStatus.NotStarted, SessionStatus.Running));
+        _sut.ShowTodoInputCommand.Execute(null);
+        _sut.IsTodoInputVisible.Should().BeTrue();
+
+        // Act
+        session.Status = SessionStatus.Completed;
+        _sessionManager.SessionStateChanged += Raise.EventWith(
+            new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Completed));
+
+        // Assert
+        _sut.IsTodoInputVisible.Should().BeFalse();
+        _sut.AddTodoCommand.CanExecute(null).Should().BeFalse();
     }
 
     #endregion
