@@ -32,7 +32,7 @@ public sealed class SlackService : ISlackService
     public SlackService(
         ISlackConfigurationService configService,
         ISessionManager sessionManager)
-        : this(configService, sessionManager, new HttpClient(), new ErrorLog())
+        : this(configService, sessionManager, HttpClients.Create(), new ErrorLog())
     {
     }
 

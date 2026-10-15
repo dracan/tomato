@@ -18,7 +18,7 @@ public sealed class UpdateCheckService : IUpdateCheckService
     private bool _disposed;
 
     public UpdateCheckService()
-        : this(new HttpClient())
+        : this(HttpClients.Create())
     {
     }
 

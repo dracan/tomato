@@ -28,7 +28,7 @@ public sealed class LuxaforService : ILuxaforService
     public LuxaforService(
         ILuxaforConfigurationService configService,
         ISessionManager sessionManager)
-        : this(configService, sessionManager, new HttpClient())
+        : this(configService, sessionManager, HttpClients.Create())
     {
     }
 
