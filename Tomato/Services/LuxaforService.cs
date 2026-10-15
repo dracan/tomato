@@ -1,4 +1,4 @@
-using System.Net.Http;
+﻿using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using Tomato.Models;
@@ -16,6 +16,10 @@ public sealed class LuxaforService : ILuxaforService
     private readonly ILuxaforConfigurationService _configService;
     private readonly ISessionManager _sessionManager;
     private readonly HttpClient _httpClient;
+    private static readonly TimeSpan ShutdownWaitTimeout = TimeSpan.FromSeconds(3);
+
+    private readonly object _updateLock = new();
+    private Task _pendingUpdate = Task.CompletedTask;
 
     private string? _userId;
     private bool _isEnabled = true;
@@ -61,7 +65,7 @@ public sealed class LuxaforService : ILuxaforService
 
         try
         {
-            await SetColorAsync("red");
+            await SetColorAsync("red").ConfigureAwait(false);
         }
         catch
         {
@@ -78,7 +82,7 @@ public sealed class LuxaforService : ILuxaforService
 
         try
         {
-            await SetColorAsync("custom", "000000");
+            await SetColorAsync("custom", "000000").ConfigureAwait(false);
         }
         catch
         {
@@ -125,6 +129,15 @@ public sealed class LuxaforService : ILuxaforService
         }
 
         _sessionManager.SessionStateChanged -= OnSessionStateChanged;
+
+        // Let a pending update (e.g. turning the light off on exit) finish first
+        Task pending;
+        lock (_updateLock)
+        {
+            pending = _pendingUpdate;
+        }
+        pending.Wait(ShutdownWaitTimeout);
+
         _httpClient.Dispose();
         _disposed = true;
     }
@@ -137,15 +150,27 @@ public sealed class LuxaforService : ILuxaforService
             return;
         }
 
-        // Focus session started
-        if (e.NewStatus == SessionStatus.Running && e.PreviousStatus == SessionStatus.NotStarted)
+        if (e.NewStatus == SessionStatus.Running)
         {
-            _ = SetFocusColorAsync();
+            QueueUpdate(SetFocusColorAsync);
         }
-        // Focus session ended (completed or cancelled)
-        else if (e.NewStatus == SessionStatus.Completed || e.NewStatus == SessionStatus.Cancelled)
+        else if (e.NewStatus is SessionStatus.Paused or SessionStatus.Completed or SessionStatus.Cancelled)
         {
-            _ = TurnOffAsync();
+            QueueUpdate(TurnOffAsync);
+        }
+    }
+
+    /// <summary>
+    /// Runs light updates one at a time, in order, so a quick start-then-cancel
+    /// can't leave the light red.
+    /// </summary>
+    private void QueueUpdate(Func<Task> update)
+    {
+        lock (_updateLock)
+        {
+            _pendingUpdate = _pendingUpdate
+                .ContinueWith(_ => update(), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default)
+                .Unwrap();
         }
     }
 
@@ -166,7 +191,7 @@ public sealed class LuxaforService : ILuxaforService
         var json = JsonSerializer.Serialize(payload);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        using var response = await _httpClient.PostAsync(LuxaforApiUrl, content);
+        using var response = await _httpClient.PostAsync(LuxaforApiUrl, content).ConfigureAwait(false);
         return response.IsSuccessStatusCode;
     }
 }

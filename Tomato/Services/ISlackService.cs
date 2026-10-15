@@ -1,4 +1,4 @@
-namespace Tomato.Services;
+﻿namespace Tomato.Services;
 
 /// <summary>
 /// Manages Slack status and Do Not Disturb during focus sessions.
@@ -19,7 +19,7 @@ public interface ISlackService : IDisposable
     /// <summary>
     /// Sets the Slack status to focus mode with DND enabled.
     /// </summary>
-    Task SetFocusStatusAsync();
+    Task SetFocusStatusAsync(TimeSpan duration);
 
     /// <summary>
     /// Clears the Slack status and disables DND.

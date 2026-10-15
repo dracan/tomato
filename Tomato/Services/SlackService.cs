@@ -1,4 +1,4 @@
-using System.Net.Http;
+﻿using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -14,11 +14,14 @@ namespace Tomato.Services;
 public sealed class SlackService : ISlackService
 {
     private const string SlackApiBaseUrl = "https://slack.com/api";
-    private const int DndDurationMinutes = 120;
 
     private readonly ISlackConfigurationService _configService;
     private readonly ISessionManager _sessionManager;
     private readonly HttpClient _httpClient;
+    private static readonly TimeSpan ShutdownWaitTimeout = TimeSpan.FromSeconds(3);
+
+    private readonly object _updateLock = new();
+    private Task _pendingUpdate = Task.CompletedTask;
 
     private string? _token;
     private bool _isEnabled = true;
@@ -55,7 +58,7 @@ public sealed class SlackService : ISlackService
         set => _isEnabled = value;
     }
 
-    public async Task SetFocusStatusAsync()
+    public async Task SetFocusStatusAsync(TimeSpan duration)
     {
         if (!IsConfigured || !IsEnabled)
         {
@@ -64,11 +67,15 @@ public sealed class SlackService : ISlackService
 
         try
         {
-            // Set status and enable DND in parallel
-            var setStatusTask = SetStatusAsync(":tomato:", "Focus time");
-            var setDndTask = SetDndSnoozeAsync(DndDurationMinutes);
+            // Both expire when the session would end, so nothing is left behind if
+            // the app crashes or the machine sleeps before the status is cleared
+            var expiresAt = DateTimeOffset.UtcNow.Add(duration).ToUnixTimeSeconds();
+            var dndMinutes = Math.Max(1, (int)Math.Ceiling(duration.TotalMinutes));
 
-            await Task.WhenAll(setStatusTask, setDndTask);
+            var setStatusTask = SetStatusAsync(":tomato:", "Focus time", expiresAt);
+            var setDndTask = SetDndSnoozeAsync(dndMinutes);
+
+            await Task.WhenAll(setStatusTask, setDndTask).ConfigureAwait(false);
         }
         catch
         {
@@ -86,10 +93,10 @@ public sealed class SlackService : ISlackService
         try
         {
             // Clear status and end DND in parallel
-            var clearStatusTask = SetStatusAsync("", "");
+            var clearStatusTask = SetStatusAsync("", "", 0);
             var endDndTask = EndDndSnoozeAsync();
 
-            await Task.WhenAll(clearStatusTask, endDndTask);
+            await Task.WhenAll(clearStatusTask, endDndTask).ConfigureAwait(false);
         }
         catch
         {
@@ -116,13 +123,13 @@ public sealed class SlackService : ISlackService
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
             request.Content = new StringContent("", Encoding.UTF8, "application/x-www-form-urlencoded");
 
-            using var response = await _httpClient.SendAsync(request);
+            using var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
                 return false;
             }
 
-            var json = await response.Content.ReadAsStringAsync();
+            var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
             var result = JsonSerializer.Deserialize<SlackApiResponse>(json);
             return result?.Ok ?? false;
         }
@@ -140,6 +147,15 @@ public sealed class SlackService : ISlackService
         }
 
         _sessionManager.SessionStateChanged -= OnSessionStateChanged;
+
+        // Let a pending update (e.g. clearing the status on exit) finish first
+        Task pending;
+        lock (_updateLock)
+        {
+            pending = _pendingUpdate;
+        }
+        pending.Wait(ShutdownWaitTimeout);
+
         _httpClient.Dispose();
         _disposed = true;
     }
@@ -152,25 +168,38 @@ public sealed class SlackService : ISlackService
             return;
         }
 
-        // Focus session started
-        if (e.NewStatus == SessionStatus.Running && e.PreviousStatus == SessionStatus.NotStarted)
+        if (e.NewStatus == SessionStatus.Running)
         {
-            _ = SetFocusStatusAsync();
+            var remaining = e.Session.TimeRemaining;
+            QueueUpdate(() => SetFocusStatusAsync(remaining));
         }
-        // Focus session ended (completed or cancelled)
-        else if (e.NewStatus == SessionStatus.Completed || e.NewStatus == SessionStatus.Cancelled)
+        else if (e.NewStatus is SessionStatus.Paused or SessionStatus.Completed or SessionStatus.Cancelled)
         {
-            _ = ClearStatusAsync();
+            QueueUpdate(ClearStatusAsync);
         }
     }
 
-    private async Task SetStatusAsync(string emoji, string text)
+    /// <summary>
+    /// Runs status updates one at a time, in order, so a quick start-then-cancel
+    /// can't leave the focus status set.
+    /// </summary>
+    private void QueueUpdate(Func<Task> update)
+    {
+        lock (_updateLock)
+        {
+            _pendingUpdate = _pendingUpdate
+                .ContinueWith(_ => update(), CancellationToken.None, TaskContinuationOptions.None, TaskScheduler.Default)
+                .Unwrap();
+        }
+    }
+
+    private async Task SetStatusAsync(string emoji, string text, long expiresAtUnixSeconds)
     {
         var profile = new
         {
             status_emoji = emoji,
             status_text = text,
-            status_expiration = 0
+            status_expiration = expiresAtUnixSeconds
         };
 
         var profileJson = JsonSerializer.Serialize(profile);
@@ -183,7 +212,7 @@ public sealed class SlackService : ISlackService
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
         request.Content = content;
 
-        using var response = await _httpClient.SendAsync(request);
+        using var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
         // We don't check the response - fire and forget
     }
 
@@ -198,7 +227,7 @@ public sealed class SlackService : ISlackService
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
         request.Content = content;
 
-        using var response = await _httpClient.SendAsync(request);
+        using var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
         // We don't check the response - fire and forget
     }
 
@@ -208,7 +237,7 @@ public sealed class SlackService : ISlackService
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
         request.Content = new StringContent("", Encoding.UTF8, "application/x-www-form-urlencoded");
 
-        using var response = await _httpClient.SendAsync(request);
+        using var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
         // We don't check the response - fire and forget
     }
 

@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http;
 using FluentAssertions;
 using NSubstitute;
@@ -83,7 +83,7 @@ public class SlackServiceTests : IDisposable
     public async Task SetFocusStatusAsync_WhenNotConfigured_DoesNotMakeApiCall()
     {
         // Act
-        await _sut.SetFocusStatusAsync();
+        await _sut.SetFocusStatusAsync(TimeSpan.FromMinutes(25));
 
         // Assert
         _httpHandler.RequestCount.Should().Be(0);
@@ -98,7 +98,7 @@ public class SlackServiceTests : IDisposable
         _sut.IsEnabled = false;
 
         // Act
-        await _sut.SetFocusStatusAsync();
+        await _sut.SetFocusStatusAsync(TimeSpan.FromMinutes(25));
 
         // Assert
         _httpHandler.RequestCount.Should().Be(0);
@@ -113,7 +113,7 @@ public class SlackServiceTests : IDisposable
         _sut = new SlackService(_configService, _sessionManager, _httpClient);
 
         // Act
-        await _sut.SetFocusStatusAsync();
+        await _sut.SetFocusStatusAsync(TimeSpan.FromMinutes(25));
 
         // Assert
         _httpHandler.RequestCount.Should().Be(2);
@@ -130,7 +130,7 @@ public class SlackServiceTests : IDisposable
         _sut = new SlackService(_configService, _sessionManager, _httpClient);
 
         // Act & Assert - should not throw
-        await _sut.Invoking(s => s.SetFocusStatusAsync()).Should().NotThrowAsync();
+        await _sut.Invoking(s => s.SetFocusStatusAsync(TimeSpan.FromMinutes(25))).Should().NotThrowAsync();
     }
 
     #endregion
@@ -343,11 +343,10 @@ public class SlackServiceTests : IDisposable
     }
 
     [Fact]
-    public void OnFocusSessionPaused_DoesNotTriggerStatusChange()
+    public void OnFocusSessionPaused_ClearsStatus()
     {
         // Arrange
         _configService.LoadToken().Returns("xoxp-test-token");
-        _httpHandler.SetupResponse(HttpStatusCode.OK, @"{""ok"":true}");
         _sut = new SlackService(_configService, _sessionManager, _httpClient);
 
         var session = Session.CreateFocus();
@@ -360,28 +359,66 @@ public class SlackServiceTests : IDisposable
 
         // Assert - give async operation time to complete
         Thread.Sleep(100);
-        _httpHandler.RequestCount.Should().Be(0);
+        _httpHandler.Requests.Should().Contain(r => r.RequestUri!.ToString().Contains("dnd.endSnooze"));
     }
 
     [Fact]
-    public void OnFocusSessionResumed_DoesNotTriggerStatusChange()
+    public void OnFocusSessionResumed_SetsFocusStatus()
     {
         // Arrange
         _configService.LoadToken().Returns("xoxp-test-token");
-        _httpHandler.SetupResponse(HttpStatusCode.OK, @"{""ok"":true}");
         _sut = new SlackService(_configService, _sessionManager, _httpClient);
 
         var session = Session.CreateFocus();
         session.Status = SessionStatus.Running;
 
-        // Act - simulate focus session resume (Running after Paused is not NotStarted -> Running)
+        // Act - simulate resuming a paused session (e.g. one restored after a restart)
         _sessionManager.SessionStateChanged += Raise.EventWith(
             _sessionManager,
             new SessionStateChangedEventArgs(session, SessionStatus.Paused, SessionStatus.Running));
 
         // Assert - give async operation time to complete
         Thread.Sleep(100);
-        _httpHandler.RequestCount.Should().Be(0);
+        _httpHandler.Requests.Should().Contain(r => r.RequestUri!.ToString().Contains("dnd.setSnooze"));
+    }
+
+    [Fact]
+    public async Task SetFocusStatusAsync_StatusExpiresAndDndEndsWhenSessionDoes()
+    {
+        // Arrange
+        _configService.LoadToken().Returns("xoxp-test-token");
+        _sut = new SlackService(_configService, _sessionManager, _httpClient);
+        var expectedExpiry = DateTimeOffset.UtcNow.AddMinutes(25).ToUnixTimeSeconds();
+
+        // Act
+        await _sut.SetFocusStatusAsync(TimeSpan.FromMinutes(25));
+
+        // Assert
+        var profileBody = Uri.UnescapeDataString(_httpHandler.Bodies.Single(b => b.StartsWith("profile=")));
+        var expiry = long.Parse(System.Text.RegularExpressions.Regex.Match(profileBody, "\"status_expiration\":(\\d+)").Groups[1].Value);
+        expiry.Should().BeCloseTo(expectedExpiry, 60);
+        _httpHandler.Bodies.Should().Contain("num_minutes=25");
+    }
+
+    [Fact]
+    public void Dispose_WaitsForPendingStatusClear()
+    {
+        // Arrange - a slow network
+        _configService.LoadToken().Returns("xoxp-test-token");
+        _httpHandler.Delay = TimeSpan.FromMilliseconds(300);
+        _sut = new SlackService(_configService, _sessionManager, _httpClient);
+
+        var session = Session.CreateFocus();
+        session.Status = SessionStatus.Paused;
+        _sessionManager.SessionStateChanged += Raise.EventWith(
+            _sessionManager,
+            new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Paused));
+
+        // Act - the app exits straight away
+        _sut.Dispose();
+
+        // Assert - the clear requests finished before Dispose returned
+        _httpHandler.CompletedCount.Should().Be(2);
     }
 
     #endregion
@@ -430,16 +467,29 @@ public class SlackServiceTests : IDisposable
             _responseContent = content;
         }
 
-        protected override Task<HttpResponseMessage> SendAsync(
+        public List<string> Bodies { get; } = new();
+        public TimeSpan Delay { get; set; }
+        private int _completedCount;
+        public int CompletedCount => Volatile.Read(ref _completedCount);
+
+        protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
-            Requests.Add(request);
-            var response = new HttpResponseMessage(_statusCode)
+            lock (Requests)
+            {
+                Requests.Add(request);
+                Bodies.Add(request.Content?.ReadAsStringAsync(cancellationToken).Result ?? "");
+            }
+
+            if (Delay > TimeSpan.Zero)
+                await Task.Delay(Delay, cancellationToken);
+
+            Interlocked.Increment(ref _completedCount);
+            return new HttpResponseMessage(_statusCode)
             {
                 Content = new StringContent(_responseContent)
             };
-            return Task.FromResult(response);
         }
     }
 }

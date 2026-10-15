@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http;
 using FluentAssertions;
 using NSubstitute;
@@ -118,7 +118,7 @@ public class LuxaforServiceTests : IDisposable
         // Assert
         _httpHandler.RequestCount.Should().Be(1);
         _httpHandler.Requests[0].RequestUri!.ToString().Should().Contain("solid_color");
-        var content = await _httpHandler.Requests[0].Content!.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        var content = _httpHandler.Bodies[0];
         content.Should().Contain("\"color\":\"red\"");
         content.Should().Contain("\"userId\":\"test-user-id\"");
     }
@@ -162,7 +162,7 @@ public class LuxaforServiceTests : IDisposable
 
         // Assert
         _httpHandler.RequestCount.Should().Be(1);
-        var content = await _httpHandler.Requests[0].Content!.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        var content = _httpHandler.Bodies[0];
         content.Should().Contain("\"color\":\"custom\"");
         content.Should().Contain("\"custom_color\":\"000000\"");
     }
@@ -332,11 +332,10 @@ public class LuxaforServiceTests : IDisposable
     }
 
     [Fact]
-    public void OnFocusSessionPaused_DoesNotTriggerColorChange()
+    public void OnFocusSessionPaused_TurnsLightOff()
     {
         // Arrange
         _configService.LoadUserId().Returns("test-user-id");
-        _httpHandler.SetupResponse(HttpStatusCode.OK, @"{""success"":true}");
         _sut = new LuxaforService(_configService, _sessionManager, _httpClient);
 
         var session = Session.CreateFocus();
@@ -349,28 +348,48 @@ public class LuxaforServiceTests : IDisposable
 
         // Assert - give async operation time to complete
         Thread.Sleep(100);
-        _httpHandler.RequestCount.Should().Be(0);
+        _httpHandler.Bodies.Should().ContainSingle().Which.Should().Contain("000000");
     }
 
     [Fact]
-    public void OnFocusSessionResumed_DoesNotTriggerColorChange()
+    public void OnFocusSessionResumed_SetsFocusColor()
     {
         // Arrange
         _configService.LoadUserId().Returns("test-user-id");
-        _httpHandler.SetupResponse(HttpStatusCode.OK, @"{""success"":true}");
         _sut = new LuxaforService(_configService, _sessionManager, _httpClient);
 
         var session = Session.CreateFocus();
         session.Status = SessionStatus.Running;
 
-        // Act - simulate focus session resume (Running after Paused is not NotStarted -> Running)
+        // Act - simulate resuming a paused session (e.g. one restored after a restart)
         _sessionManager.SessionStateChanged += Raise.EventWith(
             _sessionManager,
             new SessionStateChangedEventArgs(session, SessionStatus.Paused, SessionStatus.Running));
 
         // Assert - give async operation time to complete
         Thread.Sleep(100);
-        _httpHandler.RequestCount.Should().Be(0);
+        _httpHandler.Bodies.Should().ContainSingle().Which.Should().Contain("\"color\":\"red\"");
+    }
+
+    [Fact]
+    public void Dispose_WaitsForPendingTurnOff()
+    {
+        // Arrange - a slow network
+        _configService.LoadUserId().Returns("test-user-id");
+        _httpHandler.Delay = TimeSpan.FromMilliseconds(300);
+        _sut = new LuxaforService(_configService, _sessionManager, _httpClient);
+
+        var session = Session.CreateFocus();
+        session.Status = SessionStatus.Paused;
+        _sessionManager.SessionStateChanged += Raise.EventWith(
+            _sessionManager,
+            new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Paused));
+
+        // Act - the app exits straight away
+        _sut.Dispose();
+
+        // Assert
+        _httpHandler.CompletedCount.Should().Be(1);
     }
 
     #endregion
@@ -419,16 +438,29 @@ public class LuxaforServiceTests : IDisposable
             _responseContent = content;
         }
 
-        protected override Task<HttpResponseMessage> SendAsync(
+        public List<string> Bodies { get; } = new();
+        public TimeSpan Delay { get; set; }
+        private int _completedCount;
+        public int CompletedCount => Volatile.Read(ref _completedCount);
+
+        protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
-            Requests.Add(request);
-            var response = new HttpResponseMessage(_statusCode)
+            lock (Requests)
+            {
+                Requests.Add(request);
+                Bodies.Add(request.Content?.ReadAsStringAsync(cancellationToken).Result ?? "");
+            }
+
+            if (Delay > TimeSpan.Zero)
+                await Task.Delay(Delay, cancellationToken);
+
+            Interlocked.Increment(ref _completedCount);
+            return new HttpResponseMessage(_statusCode)
             {
                 Content = new StringContent(_responseContent)
             };
-            return Task.FromResult(response);
         }
     }
 }
