@@ -134,6 +134,9 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        // Save a running session as paused so it can be resumed next time
+        _sessionManager?.PrepareForShutdown();
+
         // Dispose services
         (_timerService as IDisposable)?.Dispose();
         (_notificationService as IDisposable)?.Dispose();

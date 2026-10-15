@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using NSubstitute;
 using Tomato.Models;
 using Tomato.Services;
@@ -28,6 +28,21 @@ public class TimerViewModelTests
     }
 
     #region Initial State
+
+    [Fact]
+    public void CurrentGoal_WithRestoredPausedSession_ShowsSessionGoal()
+    {
+        // Arrange
+        var session = Session.CreateFocus("Write report");
+        session.Status = SessionStatus.Paused;
+        _sessionManager.CurrentSession.Returns(session);
+
+        // Act
+        var sut = new TimerViewModel(_sessionManager, _dialogService, _statisticsReportService);
+
+        // Assert
+        sut.CurrentGoal.Should().Be("Write report");
+    }
 
     [Fact]
     public void TimeRemaining_InitiallyShowsDefaultDuration()

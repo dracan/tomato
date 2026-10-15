@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Tomato.Models;
@@ -314,6 +314,10 @@ public partial class TimerViewModel : ObservableObject
         if (session != null)
         {
             UpdateFromSession(session, session.Status);
+            if (session.Status is SessionStatus.Running or SessionStatus.Paused)
+            {
+                CurrentGoal = session.Goal;
+            }
         }
         UpdateStatistics();
     }

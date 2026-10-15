@@ -55,7 +55,7 @@ public sealed class PersistenceService : IPersistenceService
         var json = JsonSerializer.Serialize(state, JsonOptions);
         var version = Interlocked.Increment(ref _latestSaveVersion);
 
-        await _saveLock.WaitAsync();
+        await _saveLock.WaitAsync().ConfigureAwait(false);
         try
         {
             if (_savingDisabled || version < _writtenSaveVersion)
@@ -64,11 +64,11 @@ public sealed class PersistenceService : IPersistenceService
             EnsureDirectoryExists();
 
             var tempPath = StateFilePath + ".tmp";
-            await using (var stream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
-            await using (var writer = new StreamWriter(stream))
+            using (var stream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None))
+            using (var writer = new StreamWriter(stream))
             {
-                await writer.WriteAsync(json);
-                await writer.FlushAsync();
+                await writer.WriteAsync(json).ConfigureAwait(false);
+                await writer.FlushAsync().ConfigureAwait(false);
                 stream.Flush(flushToDisk: true);
             }
 
@@ -97,7 +97,7 @@ public sealed class PersistenceService : IPersistenceService
         string json;
         try
         {
-            json = await File.ReadAllTextAsync(StateFilePath);
+            json = await File.ReadAllTextAsync(StateFilePath).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

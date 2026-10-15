@@ -1009,6 +1009,64 @@ public class SessionManagerTests
 
     #endregion
 
+    #region Restart Persistence
+
+    [Fact]
+    public async Task RestoreStateAsync_RunningSession_RestoresAsPausedWithGoal()
+    {
+        // Arrange - the app stopped while a focus session was running
+        _persistenceService.LoadAsync().Returns(new AppState
+        {
+            CurrentSession = new AppState.SessionState
+            {
+                Type = SessionType.Focus,
+                Status = SessionStatus.Running,
+                Duration = TimeSpan.FromMinutes(25),
+                TimeRemaining = TimeSpan.FromMinutes(12),
+                Goal = "Write report"
+            }
+        });
+
+        // Act
+        await _sut.RestoreStateAsync();
+
+        // Assert
+        _sut.CurrentSession.Should().NotBeNull();
+        _sut.CurrentSession!.Status.Should().Be(SessionStatus.Paused);
+        _sut.CurrentSession.TimeRemaining.Should().Be(TimeSpan.FromMinutes(12));
+        _sut.CurrentSession.Goal.Should().Be("Write report");
+    }
+
+    [Fact]
+    public void PrepareForShutdown_WhenRunning_SavesPausedSessionWithGoal()
+    {
+        // Arrange
+        _sut.StartFocus("Write report");
+        _timerService.Remaining.Returns(TimeSpan.FromMinutes(10));
+        AppState? saved = null;
+        _persistenceService.SaveAsync(Arg.Do<AppState>(s => saved = s));
+
+        // Act
+        _sut.PrepareForShutdown();
+
+        // Assert
+        saved!.CurrentSession!.Status.Should().Be(SessionStatus.Paused);
+        saved.CurrentSession.TimeRemaining.Should().Be(TimeSpan.FromMinutes(10));
+        saved.CurrentSession.Goal.Should().Be("Write report");
+    }
+
+    [Fact]
+    public void PrepareForShutdown_WithNoSession_StillSaves()
+    {
+        // Act
+        _sut.PrepareForShutdown();
+
+        // Assert
+        _persistenceService.Received(1).SaveAsync(Arg.Any<AppState>());
+    }
+
+    #endregion
+
     private SessionManager CreateSut() => new(
         _timerService,
         _notificationService,

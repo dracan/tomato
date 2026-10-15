@@ -275,13 +275,22 @@ public sealed class SessionManager : ISessionManager
             TodayStatistics = restoredStats;
         }
 
-        // Restore session if it was paused
+        // Restore an unfinished session as paused. A session that was still running
+        // (e.g. the app crashed) resumes from the time remaining when it was last saved.
         var restoredSession = state.RestoreSession();
-        if (restoredSession != null && restoredSession.Status == SessionStatus.Paused)
+        if (restoredSession is { Status: SessionStatus.Paused or SessionStatus.Running })
         {
+            restoredSession.Status = SessionStatus.Paused;
             CurrentSession = restoredSession;
             RaiseSessionStateChanged(SessionStatus.NotStarted, SessionStatus.Paused);
         }
+    }
+
+    /// <inheritdoc />
+    public void PrepareForShutdown()
+    {
+        Pause();
+        _persistenceService.SaveAsync(CreateAppState()).GetAwaiter().GetResult();
     }
 
     private void RollOverToNewDayIfNeeded()
@@ -386,13 +395,13 @@ public sealed class SessionManager : ISessionManager
 
     private void PersistState()
     {
-        var state = AppState.FromCurrentState(
-            CurrentSession,
-            Cycle,
-            TodayStatistics,
-            _statisticsHistory,
-            _dateTimeProvider.Now);
-
-        _ = _persistenceService.SaveAsync(state);
+        _ = _persistenceService.SaveAsync(CreateAppState());
     }
+
+    private AppState CreateAppState() => AppState.FromCurrentState(
+        CurrentSession,
+        Cycle,
+        TodayStatistics,
+        _statisticsHistory,
+        _dateTimeProvider.Now);
 }

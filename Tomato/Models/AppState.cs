@@ -1,4 +1,4 @@
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace Tomato.Models;
 
@@ -44,6 +44,7 @@ public sealed class AppState
         public TimeSpan TimeRemaining { get; set; }
         public DateTime? StartedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
+        public string? Goal { get; set; }
     }
 
     /// <summary>
@@ -117,7 +118,8 @@ public sealed class AppState
                 Duration = currentSession.Duration,
                 TimeRemaining = currentSession.TimeRemaining,
                 StartedAt = currentSession.StartedAt,
-                CompletedAt = currentSession.CompletedAt
+                CompletedAt = currentSession.CompletedAt,
+                Goal = currentSession.Goal
             };
         }
 
@@ -240,10 +242,10 @@ public sealed class AppState
 
         var session = CurrentSession.Type switch
         {
-            SessionType.Focus => Session.CreateFocus(CurrentSession.Duration),
+            SessionType.Focus => Session.CreateFocus(CurrentSession.Duration, CurrentSession.Goal),
             SessionType.ShortBreak => Session.CreateShortBreak(CurrentSession.Duration),
             SessionType.LongBreak => Session.CreateLongBreak(CurrentSession.Duration),
-            _ => Session.CreateFocus(CurrentSession.Duration)
+            _ => Session.CreateFocus(CurrentSession.Duration, CurrentSession.Goal)
         };
 
         session.Status = CurrentSession.Status;

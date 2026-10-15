@@ -1,4 +1,4 @@
-using Tomato.Models;
+﻿using Tomato.Models;
 
 namespace Tomato.Services;
 
@@ -138,6 +138,12 @@ public interface ISessionManager
     /// Only valid when a session is running or paused.
     /// </summary>
     void Restart();
+
+    /// <summary>
+    /// Pauses a running session and saves state, waiting for the save to finish,
+    /// so the session can be resumed after the app restarts.
+    /// </summary>
+    void PrepareForShutdown();
 
     /// <summary>
     /// Adds a supplemental activity (non-Pomodoro work like meetings) to today's statistics.
