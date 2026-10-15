@@ -196,10 +196,10 @@ public class SlackServiceTests : IDisposable
     #region TestConnectionAsync
 
     [Fact]
-    public async Task TestConnectionAsync_WhenNotConfigured_ReturnsFalse()
+    public async Task TestConnectionAsync_WithEmptyToken_ReturnsFalse()
     {
         // Act
-        var result = await _sut.TestConnectionAsync();
+        var result = await _sut.TestConnectionAsync("");
 
         // Assert
         result.Should().BeFalse();
@@ -214,7 +214,7 @@ public class SlackServiceTests : IDisposable
         _sut = new SlackService(_configService, _sessionManager, _httpClient);
 
         // Act
-        var result = await _sut.TestConnectionAsync();
+        var result = await _sut.TestConnectionAsync("xoxp-test-token");
 
         // Assert
         result.Should().BeTrue();
@@ -230,7 +230,7 @@ public class SlackServiceTests : IDisposable
         _sut = new SlackService(_configService, _sessionManager, _httpClient);
 
         // Act
-        var result = await _sut.TestConnectionAsync();
+        var result = await _sut.TestConnectionAsync("xoxp-test-token");
 
         // Assert
         result.Should().BeFalse();
@@ -245,10 +245,27 @@ public class SlackServiceTests : IDisposable
         _sut = new SlackService(_configService, _sessionManager, _httpClient);
 
         // Act
-        var result = await _sut.TestConnectionAsync();
+        var result = await _sut.TestConnectionAsync("xoxp-test-token");
 
         // Assert
         result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task TestConnectionAsync_DoesNotSaveOrSwitchToTheTestedToken()
+    {
+        // Arrange - a working token is already saved
+        _configService.LoadToken().Returns("xoxp-good-token");
+        _sut = new SlackService(_configService, _sessionManager, _httpClient);
+
+        // Act - test a different (mistyped) token, then the dialog is cancelled
+        await _sut.TestConnectionAsync("xoxp-typo");
+        await _sut.SetFocusStatusAsync(TimeSpan.FromMinutes(25));
+
+        // Assert
+        await _configService.DidNotReceive().SaveTokenAsync(Arg.Any<string>());
+        _httpHandler.Requests[0].Headers.Authorization!.Parameter.Should().Be("xoxp-typo");
+        _httpHandler.Requests.Skip(1).Should().OnlyContain(r => r.Headers.Authorization!.Parameter == "xoxp-good-token");
     }
 
     #endregion

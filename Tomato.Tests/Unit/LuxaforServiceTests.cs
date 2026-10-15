@@ -199,10 +199,10 @@ public class LuxaforServiceTests : IDisposable
     #region TestConnectionAsync
 
     [Fact]
-    public async Task TestConnectionAsync_WhenNotConfigured_ReturnsFalse()
+    public async Task TestConnectionAsync_WithEmptyUserId_ReturnsFalse()
     {
         // Act
-        var result = await _sut.TestConnectionAsync();
+        var result = await _sut.TestConnectionAsync("");
 
         // Assert
         result.Should().BeFalse();
@@ -217,7 +217,7 @@ public class LuxaforServiceTests : IDisposable
         _sut = new LuxaforService(_configService, _sessionManager, _httpClient);
 
         // Act
-        var result = await _sut.TestConnectionAsync();
+        var result = await _sut.TestConnectionAsync("test-user-id");
 
         // Assert
         result.Should().BeTrue();
@@ -234,10 +234,27 @@ public class LuxaforServiceTests : IDisposable
         _sut = new LuxaforService(_configService, _sessionManager, _httpClient);
 
         // Act
-        var result = await _sut.TestConnectionAsync();
+        var result = await _sut.TestConnectionAsync("test-user-id");
 
         // Assert
         result.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task TestConnectionAsync_DoesNotSaveOrSwitchToTheTestedUserId()
+    {
+        // Arrange - a working user ID is already saved
+        _configService.LoadUserId().Returns("good-user-id");
+        _sut = new LuxaforService(_configService, _sessionManager, _httpClient);
+
+        // Act - test a different (mistyped) user ID, then the dialog is cancelled
+        await _sut.TestConnectionAsync("typo-user-id");
+        await _sut.SetFocusColorAsync();
+
+        // Assert
+        await _configService.DidNotReceive().SaveUserIdAsync(Arg.Any<string>());
+        _httpHandler.Bodies.Take(2).Should().OnlyContain(b => b.Contains("typo-user-id"));
+        _httpHandler.Bodies.Last().Should().Contain("good-user-id");
     }
 
     #endregion

@@ -65,7 +65,7 @@ public sealed class LuxaforService : ILuxaforService
 
         try
         {
-            await SetColorAsync("red").ConfigureAwait(false);
+            await SetColorAsync(_userId!, "red").ConfigureAwait(false);
         }
         catch
         {
@@ -82,7 +82,7 @@ public sealed class LuxaforService : ILuxaforService
 
         try
         {
-            await SetColorAsync("custom", "000000").ConfigureAwait(false);
+            await SetColorAsync(_userId!, "custom", "000000").ConfigureAwait(false);
         }
         catch
         {
@@ -96,9 +96,9 @@ public sealed class LuxaforService : ILuxaforService
         await _configService.SaveUserIdAsync(userId);
     }
 
-    public async Task<bool> TestConnectionAsync()
+    public async Task<bool> TestConnectionAsync(string userId)
     {
-        if (!IsConfigured)
+        if (string.IsNullOrEmpty(userId))
         {
             return false;
         }
@@ -106,12 +106,12 @@ public sealed class LuxaforService : ILuxaforService
         try
         {
             // Test by setting a brief green color then turning off
-            var response = await SetColorAsync("green");
+            var response = await SetColorAsync(userId, "green");
             if (response)
             {
                 // Brief delay then turn off
                 await Task.Delay(500);
-                await SetColorAsync("custom", "000000");
+                await SetColorAsync(userId, "custom", "000000");
             }
             return response;
         }
@@ -174,7 +174,7 @@ public sealed class LuxaforService : ILuxaforService
         }
     }
 
-    private async Task<bool> SetColorAsync(string color, string? customColor = null)
+    private async Task<bool> SetColorAsync(string userId, string color, string? customColor = null)
     {
         var actionFields = new Dictionary<string, string> { ["color"] = color };
         if (customColor != null)
@@ -184,7 +184,7 @@ public sealed class LuxaforService : ILuxaforService
 
         var payload = new
         {
-            userId = _userId,
+            userId,
             actionFields
         };
 

@@ -33,8 +33,9 @@ public interface ISlackService : IDisposable
     Task ConfigureAsync(string token);
 
     /// <summary>
-    /// Tests the connection to Slack using the configured token.
+    /// Tests whether the given token works, without saving it or switching to it.
     /// </summary>
     /// <returns>True if the connection is successful, false otherwise.</returns>
-    Task<bool> TestConnectionAsync();
+    /// <param name="token">The token to test.</param>
+    Task<bool> TestConnectionAsync(string token);
 }

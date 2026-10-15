@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using Tomato.Services;
@@ -50,9 +50,8 @@ public partial class SlackSetupDialog : Window
 
         try
         {
-            // Temporarily configure the service with the new token
-            await _slackService.ConfigureAsync(token);
-            var success = await _slackService.TestConnectionAsync();
+            // Only test the token here; it is saved when the user clicks Save
+            var success = await _slackService.TestConnectionAsync(token);
 
             if (success)
             {

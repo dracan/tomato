@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using Tomato.Services;
@@ -50,9 +50,8 @@ public partial class LuxaforSetupDialog : Window
 
         try
         {
-            // Temporarily configure the service with the new user ID
-            await _luxaforService.ConfigureAsync(userId);
-            var success = await _luxaforService.TestConnectionAsync();
+            // Only test the user ID here; it is saved when the user clicks Save
+            var success = await _luxaforService.TestConnectionAsync(userId);
 
             if (success)
             {

@@ -110,9 +110,9 @@ public sealed class SlackService : ISlackService
         await _configService.SaveTokenAsync(token);
     }
 
-    public async Task<bool> TestConnectionAsync()
+    public async Task<bool> TestConnectionAsync(string token)
     {
-        if (!IsConfigured)
+        if (string.IsNullOrEmpty(token))
         {
             return false;
         }
@@ -120,7 +120,7 @@ public sealed class SlackService : ISlackService
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Post, $"{SlackApiBaseUrl}/auth.test");
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             request.Content = new StringContent("", Encoding.UTF8, "application/x-www-form-urlencoded");
 
             using var response = await _httpClient.SendAsync(request).ConfigureAwait(false);

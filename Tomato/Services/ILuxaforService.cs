@@ -1,4 +1,4 @@
-namespace Tomato.Services;
+﻿namespace Tomato.Services;
 
 /// <summary>
 /// Manages Luxafor LED light during focus sessions.
@@ -33,8 +33,9 @@ public interface ILuxaforService : IDisposable
     Task ConfigureAsync(string userId);
 
     /// <summary>
-    /// Tests the connection to Luxafor using the configured user ID.
+    /// Tests whether the given user ID works, without saving it or switching to it.
     /// </summary>
     /// <returns>True if the connection is successful, false otherwise.</returns>
-    Task<bool> TestConnectionAsync();
+    /// <param name="userId">The user ID to test.</param>
+    Task<bool> TestConnectionAsync(string userId);
 }
