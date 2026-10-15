@@ -494,6 +494,75 @@ public class TimerViewModelTests
     #region Results Recording
 
     [Fact]
+    public void WhenFocusSessionCompletes_ShowsResultsDialogOnlyAfterEventHandlersReturn()
+    {
+        // Arrange - a UI-like context that queues posted work
+        var context = new QueuingSynchronizationContext();
+        var previous = SynchronizationContext.Current;
+        SynchronizationContext.SetSynchronizationContext(context);
+        try
+        {
+            var session = Session.CreateFocus("Test goal");
+            session.Status = SessionStatus.Completed;
+            _sessionManager.CurrentSession.Returns(session);
+            _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>())
+                .Returns(new ResultsDialogResult(false, null, null));
+
+            // Act
+            _sessionManager.SessionStateChanged += Raise.EventWith(
+                new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Completed));
+
+            // Assert - not shown inside the event, shown once queued work runs
+            _dialogService.DidNotReceive().ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>());
+            context.RunAll();
+            _dialogService.Received(1).ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>());
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(previous);
+        }
+    }
+
+    [Fact]
+    public void WhenNewSessionStartsWhileResultsDialogOpen_KeepsNewSessionGoal()
+    {
+        // Arrange
+        var completed = Session.CreateFocus("Old goal");
+        completed.Status = SessionStatus.Completed;
+        _sessionManager.CurrentSession.Returns(completed);
+        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>())
+            .Returns(_ =>
+            {
+                // The user starts a new focus session (e.g. from the tray) while the dialog is open
+                var next = Session.CreateFocus("New goal");
+                next.Status = SessionStatus.Running;
+                _sessionManager.CurrentSession.Returns(next);
+                _sut.CurrentGoal = "New goal";
+                return new ResultsDialogResult(false, null, null);
+            });
+
+        // Act
+        _sessionManager.SessionStateChanged += Raise.EventWith(
+            new SessionStateChangedEventArgs(completed, SessionStatus.Running, SessionStatus.Completed));
+
+        // Assert
+        _sut.CurrentGoal.Should().Be("New goal");
+    }
+
+    private sealed class QueuingSynchronizationContext : SynchronizationContext
+    {
+        private readonly Queue<(SendOrPostCallback Callback, object? State)> _queue = new();
+
+        public override void Post(SendOrPostCallback d, object? state) => _queue.Enqueue((d, state));
+
+        public void RunAll()
+        {
+            while (_queue.TryDequeue(out var item))
+                item.Callback(item.State);
+        }
+    }
+
+    [Fact]
     public void WhenFocusSessionCompletes_ShowsResultsDialog()
     {
         // Arrange

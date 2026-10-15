@@ -271,6 +271,21 @@ public partial class TimerViewModel : ObservableObject
         // Show results dialog when a focus session completes
         if (e.NewStatus == SessionStatus.Completed && e.Session.Type == SessionType.Focus)
         {
+            ShowResultsDialogAfterCurrentEvent();
+        }
+    }
+
+    private void ShowResultsDialogAfterCurrentEvent()
+    {
+        // The dialog is modal, so show it once this event has finished dispatching;
+        // otherwise later subscribers (e.g. the tray icon) wait until it is closed.
+        var context = SynchronizationContext.Current;
+        if (context != null)
+        {
+            context.Post(_ => _ = ShowResultsDialogAsync(), null);
+        }
+        else
+        {
             _ = ShowResultsDialogAsync();
         }
     }
@@ -285,9 +300,12 @@ public partial class TimerViewModel : ObservableObject
             SyncCompletedSessionRecords(forceRefresh: true);
         }
 
-        // Clear the goal and todos after the session is complete
-        CurrentGoal = null;
-        ClearCapturedTodos();
+        // Clear the goal and todos, unless a new session was started while the dialog was open
+        if (_sessionManager.CurrentSession is not { Status: SessionStatus.Running or SessionStatus.Paused })
+        {
+            CurrentGoal = null;
+            ClearCapturedTodos();
+        }
     }
 
     private void ClearCapturedTodos()

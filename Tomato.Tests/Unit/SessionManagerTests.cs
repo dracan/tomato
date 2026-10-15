@@ -215,6 +215,31 @@ public class SessionManagerTests
         eventArgs!.NewStatus.Should().Be(SessionStatus.Completed);
     }
 
+    [Fact]
+    public void OnTimerCompleted_SavesCompletedSessionBeforeRaisingEvent()
+    {
+        // Arrange - a subscriber may block (the results dialog is modal)
+        _sut.StartFocus();
+        _persistenceService.ClearReceivedCalls();
+        AppState? savedBeforeEvent = null;
+        _sut.SessionStateChanged += (_, e) =>
+        {
+            if (e.NewStatus == SessionStatus.Completed)
+                savedBeforeEvent = _persistenceService.ReceivedCalls()
+                    .Select(c => c.GetArguments()[0])
+                    .OfType<AppState>()
+                    .LastOrDefault();
+        };
+
+        // Act
+        _timerService.Completed += Raise.Event();
+
+        // Assert
+        savedBeforeEvent.Should().NotBeNull();
+        savedBeforeEvent!.CurrentSession!.Status.Should().Be(SessionStatus.Completed);
+        savedBeforeEvent.TodayStatistics!.FocusSessionsCompleted.Should().Be(1);
+    }
+
     #endregion
 
     #region Timer Tick Forwarding

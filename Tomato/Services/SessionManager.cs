@@ -380,8 +380,9 @@ public sealed class SessionManager : ISessionManager
         // Play notification sound
         _ = _notificationService.PlayCompletionSoundAsync(CurrentSession.Type);
 
-        RaiseSessionStateChanged(previousStatus, SessionStatus.Completed);
+        // Save before notifying: a subscriber may block (the results dialog is modal)
         PersistState();
+        RaiseSessionStateChanged(previousStatus, SessionStatus.Completed);
     }
 
     private void RaiseSessionStateChanged(SessionStatus previousStatus, SessionStatus newStatus)
