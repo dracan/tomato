@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.IO;
+using System.Net;
 using System.Net.Http;
 using FluentAssertions;
 using NSubstitute;
@@ -202,7 +203,7 @@ public class SlackServiceTests : IDisposable
         var result = await _sut.TestConnectionAsync("");
 
         // Assert
-        result.Should().BeFalse();
+        result.Success.Should().BeFalse();
     }
 
     [Fact]
@@ -217,7 +218,7 @@ public class SlackServiceTests : IDisposable
         var result = await _sut.TestConnectionAsync("xoxp-test-token");
 
         // Assert
-        result.Should().BeTrue();
+        result.Success.Should().BeTrue();
         _httpHandler.Requests.Should().Contain(r => r.RequestUri!.ToString().Contains("auth.test"));
     }
 
@@ -233,7 +234,8 @@ public class SlackServiceTests : IDisposable
         var result = await _sut.TestConnectionAsync("xoxp-test-token");
 
         // Assert
-        result.Should().BeFalse();
+        result.Success.Should().BeFalse();
+        result.Message.Should().Contain("invalid_auth");
     }
 
     [Fact]
@@ -248,7 +250,7 @@ public class SlackServiceTests : IDisposable
         var result = await _sut.TestConnectionAsync("xoxp-test-token");
 
         // Assert
-        result.Should().BeFalse();
+        result.Success.Should().BeFalse();
     }
 
     [Fact]
@@ -266,6 +268,66 @@ public class SlackServiceTests : IDisposable
         await _configService.DidNotReceive().SaveTokenAsync(Arg.Any<string>());
         _httpHandler.Requests[0].Headers.Authorization!.Parameter.Should().Be("xoxp-typo");
         _httpHandler.Requests.Skip(1).Should().OnlyContain(r => r.Headers.Authorization!.Parameter == "xoxp-good-token");
+    }
+
+    [Fact]
+    public async Task TestConnectionAsync_WhenTokenLacksRequiredScopes_FailsNamingThem()
+    {
+        // Arrange - a valid token without the scopes Tomato needs
+        _httpHandler.SetupResponse(HttpStatusCode.OK, @"{""ok"":true}");
+        _httpHandler.ResponseHeaders["x-oauth-scopes"] = "users.profile:write,chat:write";
+        _sut = new SlackService(_configService, _sessionManager, _httpClient);
+
+        // Act
+        var result = await _sut.TestConnectionAsync("xoxp-test-token");
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.Message.Should().Contain("dnd:write");
+        result.Message.Should().NotContain("users.profile:write");
+    }
+
+    [Fact]
+    public async Task TestConnectionAsync_WhenTokenHasRequiredScopes_Succeeds()
+    {
+        // Arrange
+        _httpHandler.SetupResponse(HttpStatusCode.OK, @"{""ok"":true}");
+        _httpHandler.ResponseHeaders["x-oauth-scopes"] = "dnd:write,users.profile:write";
+        _sut = new SlackService(_configService, _sessionManager, _httpClient);
+
+        // Act
+        var result = await _sut.TestConnectionAsync("xoxp-test-token");
+
+        // Assert
+        result.Success.Should().BeTrue();
+    }
+
+    #endregion
+
+    #region API Errors
+
+    [Fact]
+    public async Task SetFocusStatusAsync_WhenSlackReportsAnError_LogsIt()
+    {
+        // Arrange - Slack returns HTTP 200 with ok:false for API errors
+        var logDirectory = Path.Combine(Path.GetTempPath(), "Tomato.Tests", Guid.NewGuid().ToString());
+        var errorLog = new ErrorLog(logDirectory);
+        _configService.LoadToken().Returns("xoxp-test-token");
+        _httpHandler.SetupResponse(HttpStatusCode.OK, @"{""ok"":false,""error"":""missing_scope""}");
+        _sut = new SlackService(_configService, _sessionManager, _httpClient, errorLog);
+
+        try
+        {
+            // Act
+            await _sut.SetFocusStatusAsync(TimeSpan.FromMinutes(25));
+
+            // Assert
+            File.ReadAllText(errorLog.LogFilePath).Should().Contain("missing_scope");
+        }
+        finally
+        {
+            Directory.Delete(logDirectory, true);
+        }
     }
 
     #endregion
@@ -485,6 +547,7 @@ public class SlackServiceTests : IDisposable
         }
 
         public List<string> Bodies { get; } = new();
+        public Dictionary<string, string> ResponseHeaders { get; } = new();
         public TimeSpan Delay { get; set; }
         private int _completedCount;
         public int CompletedCount => Volatile.Read(ref _completedCount);
@@ -503,10 +566,13 @@ public class SlackServiceTests : IDisposable
                 await Task.Delay(Delay, cancellationToken);
 
             Interlocked.Increment(ref _completedCount);
-            return new HttpResponseMessage(_statusCode)
+            var response = new HttpResponseMessage(_statusCode)
             {
                 Content = new StringContent(_responseContent)
             };
+            foreach (var header in ResponseHeaders)
+                response.Headers.Add(header.Key, header.Value);
+            return response;
         }
     }
 }

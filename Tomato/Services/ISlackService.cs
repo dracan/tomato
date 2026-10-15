@@ -35,7 +35,19 @@ public interface ISlackService : IDisposable
     /// <summary>
     /// Tests whether the given token works, without saving it or switching to it.
     /// </summary>
-    /// <returns>True if the connection is successful, false otherwise.</returns>
+    /// <returns>Whether the token works, and a message to show if it doesn't.</returns>
     /// <param name="token">The token to test.</param>
-    Task<bool> TestConnectionAsync(string token);
+    Task<ConnectionTestResult> TestConnectionAsync(string token);
+}
+
+/// <summary>
+/// The outcome of testing an integration's credentials.
+/// </summary>
+/// <param name="Success">Whether the credentials work.</param>
+/// <param name="Message">What went wrong, when they don't.</param>
+public sealed record ConnectionTestResult(bool Success, string? Message)
+{
+    public static ConnectionTestResult Succeeded { get; } = new(true, null);
+
+    public static ConnectionTestResult Failed(string message) => new(false, message);
 }

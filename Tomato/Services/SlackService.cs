@@ -1,4 +1,4 @@
-﻿using System.Net.Http;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -14,11 +14,13 @@ namespace Tomato.Services;
 public sealed class SlackService : ISlackService
 {
     private const string SlackApiBaseUrl = "https://slack.com/api";
+    private static readonly string[] RequiredScopes = ["users.profile:write", "dnd:write"];
+    private static readonly TimeSpan ShutdownWaitTimeout = TimeSpan.FromSeconds(3);
 
     private readonly ISlackConfigurationService _configService;
     private readonly ISessionManager _sessionManager;
     private readonly HttpClient _httpClient;
-    private static readonly TimeSpan ShutdownWaitTimeout = TimeSpan.FromSeconds(3);
+    private readonly ErrorLog? _errorLog;
 
     private readonly object _updateLock = new();
     private Task _pendingUpdate = Task.CompletedTask;
@@ -30,18 +32,20 @@ public sealed class SlackService : ISlackService
     public SlackService(
         ISlackConfigurationService configService,
         ISessionManager sessionManager)
-        : this(configService, sessionManager, new HttpClient())
+        : this(configService, sessionManager, new HttpClient(), new ErrorLog())
     {
     }
 
     public SlackService(
         ISlackConfigurationService configService,
         ISessionManager sessionManager,
-        HttpClient httpClient)
+        HttpClient httpClient,
+        ErrorLog? errorLog = null)
     {
         _configService = configService;
         _sessionManager = sessionManager;
         _httpClient = httpClient;
+        _errorLog = errorLog;
 
         // Load token from configuration
         _token = _configService.LoadToken();
@@ -77,9 +81,10 @@ public sealed class SlackService : ISlackService
 
             await Task.WhenAll(setStatusTask, setDndTask).ConfigureAwait(false);
         }
-        catch
+        catch (Exception ex)
         {
-            // Silent failure - don't interrupt user's focus session
+            // Don't interrupt the focus session, but leave a trace
+            _errorLog?.Log(ex, "Slack: setting focus status");
         }
     }
 
@@ -98,9 +103,9 @@ public sealed class SlackService : ISlackService
 
             await Task.WhenAll(clearStatusTask, endDndTask).ConfigureAwait(false);
         }
-        catch
+        catch (Exception ex)
         {
-            // Silent failure - don't interrupt user's workflow
+            _errorLog?.Log(ex, "Slack: clearing focus status");
         }
     }
 
@@ -110,32 +115,38 @@ public sealed class SlackService : ISlackService
         await _configService.SaveTokenAsync(token);
     }
 
-    public async Task<bool> TestConnectionAsync(string token)
+    public async Task<ConnectionTestResult> TestConnectionAsync(string token)
     {
         if (string.IsNullOrEmpty(token))
         {
-            return false;
+            return ConnectionTestResult.Failed("Please enter a token.");
         }
 
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, $"{SlackApiBaseUrl}/auth.test");
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-            request.Content = new StringContent("", Encoding.UTF8, "application/x-www-form-urlencoded");
+            using var response = await SendAsync("auth.test", token, EmptyForm()).ConfigureAwait(false);
 
-            using var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
-            if (!response.IsSuccessStatusCode)
+            // auth.test succeeds for any valid token, so also check it can do what Tomato needs.
+            // Slack lists a user token's scopes in this header.
+            if (response.Headers.TryGetValues("x-oauth-scopes", out var values))
             {
-                return false;
+                var granted = string.Join(",", values).Split(',', StringSplitOptions.TrimEntries);
+                var missing = RequiredScopes.Except(granted).ToList();
+                if (missing.Count > 0)
+                {
+                    return ConnectionTestResult.Failed($"The token is missing the {string.Join(" and ", missing)} scope.");
+                }
             }
 
-            var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            var result = JsonSerializer.Deserialize<SlackApiResponse>(json);
-            return result?.Ok ?? false;
+            return ConnectionTestResult.Succeeded;
         }
-        catch
+        catch (SlackApiException ex)
         {
-            return false;
+            return ConnectionTestResult.Failed($"Slack rejected the token ({ex.Error}).");
+        }
+        catch (Exception)
+        {
+            return ConnectionTestResult.Failed("Couldn't reach Slack. Check your connection and try again.");
         }
     }
 
@@ -202,18 +213,12 @@ public sealed class SlackService : ISlackService
             status_expiration = expiresAtUnixSeconds
         };
 
-        var profileJson = JsonSerializer.Serialize(profile);
         var content = new FormUrlEncodedContent(new[]
         {
-            new KeyValuePair<string, string>("profile", profileJson)
+            new KeyValuePair<string, string>("profile", JsonSerializer.Serialize(profile))
         });
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"{SlackApiBaseUrl}/users.profile.set");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
-        request.Content = content;
-
-        using var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
-        // We don't check the response - fire and forget
+        using var _ = await SendAsync("users.profile.set", _token!, content).ConfigureAwait(false);
     }
 
     private async Task SetDndSnoozeAsync(int minutes)
@@ -223,27 +228,63 @@ public sealed class SlackService : ISlackService
             new KeyValuePair<string, string>("num_minutes", minutes.ToString())
         });
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"{SlackApiBaseUrl}/dnd.setSnooze");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
-        request.Content = content;
-
-        using var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
-        // We don't check the response - fire and forget
+        using var _ = await SendAsync("dnd.setSnooze", _token!, content).ConfigureAwait(false);
     }
 
     private async Task EndDndSnoozeAsync()
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"{SlackApiBaseUrl}/dnd.endSnooze");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
-        request.Content = new StringContent("", Encoding.UTF8, "application/x-www-form-urlencoded");
+        using var _ = await SendAsync("dnd.endSnooze", _token!, EmptyForm()).ConfigureAwait(false);
+    }
 
-        using var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
-        // We don't check the response - fire and forget
+    private static StringContent EmptyForm() =>
+        new("", Encoding.UTF8, "application/x-www-form-urlencoded");
+
+    /// <summary>
+    /// Calls a Slack API method. Slack reports most errors as HTTP 200 with "ok": false,
+    /// so both are turned into a <see cref="SlackApiException"/>.
+    /// </summary>
+    private async Task<HttpResponseMessage> SendAsync(string method, string token, HttpContent content)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"{SlackApiBaseUrl}/{method}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Content = content;
+
+        var response = await _httpClient.SendAsync(request).ConfigureAwait(false);
+        try
+        {
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new SlackApiException(method, $"HTTP {(int)response.StatusCode}");
+            }
+
+            var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var result = JsonSerializer.Deserialize<SlackApiResponse>(json);
+            if (result?.Ok != true)
+            {
+                throw new SlackApiException(method, result?.Error ?? "unknown_error");
+            }
+
+            return response;
+        }
+        catch
+        {
+            response.Dispose();
+            throw;
+        }
     }
 
     private sealed class SlackApiResponse
     {
         [JsonPropertyName("ok")]
         public bool Ok { get; set; }
+
+        [JsonPropertyName("error")]
+        public string? Error { get; set; }
+    }
+
+    private sealed class SlackApiException(string method, string error)
+        : Exception($"Slack {method} failed: {error}")
+    {
+        public string Error { get; } = error;
     }
 }

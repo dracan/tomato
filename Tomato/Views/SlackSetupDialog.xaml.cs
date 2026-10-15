@@ -51,15 +51,15 @@ public partial class SlackSetupDialog : Window
         try
         {
             // Only test the token here; it is saved when the user clicks Save
-            var success = await _slackService.TestConnectionAsync(token);
+            var result = await _slackService.TestConnectionAsync(token);
 
-            if (success)
+            if (result.Success)
             {
                 ShowStatus("Connection successful!", isError: false, isSuccess: true);
             }
             else
             {
-                ShowStatus("Connection failed. Check your token and try again.", isError: true);
+                ShowStatus(result.Message ?? "Connection failed. Check your token and try again.", isError: true);
             }
         }
         catch
