@@ -667,7 +667,8 @@ public sealed class StatisticsReportService : IStatisticsReportService
         var totalBreakTime = todayStats.TotalBreakTime;
         var totalCycles = todayStats.CyclesCompleted;
 
-        foreach (var day in history)
+        // Today is counted above; skip it if history also holds it
+        foreach (var day in history.Where(d => d.Date != todayStats.Date))
         {
             totalSessions += day.FocusSessionsCompleted;
             totalFocusTime += day.TotalFocusTime;

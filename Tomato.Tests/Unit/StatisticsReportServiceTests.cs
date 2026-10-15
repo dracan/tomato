@@ -157,6 +157,21 @@ public class StatisticsReportServiceTests : IDisposable
     }
 
     [Fact]
+    public void GenerateReport_HistoryAlsoContainingToday_DoesNotDoubleCountTotals()
+    {
+        // Arrange - today (4 sessions) also appears in history
+        var today = _sessionManager.TodayStatistics;
+        _sessionManager.StatisticsHistory.Returns(new List<DailyStatistics> { today });
+
+        // Act
+        _sut.GenerateReport();
+
+        // Assert
+        var html = File.ReadAllText(Path.Combine(_testReportsDirectory, "stats.html"));
+        StatValue(html, "Total Sessions").Should().Be("4");
+    }
+
+    [Fact]
     public void GenerateAndOpenReport_HtmlContainsHistoryTable()
     {
         // Arrange
