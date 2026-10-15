@@ -15,6 +15,14 @@ public partial class UpdateAvailableDialog : Window
     public UpdateAvailableDialog(UpdateCheckResult updateResult)
     {
         InitializeComponent();
+        PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Escape)
+            {
+                e.Handled = true;
+                OnClose(this, new RoutedEventArgs());
+            }
+        };
 
         _releaseUrl = updateResult.ReleaseUrl;
 

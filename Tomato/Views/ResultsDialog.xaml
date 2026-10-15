@@ -16,6 +16,10 @@
         WindowStyle="None"
         AllowsTransparency="True">
 
+    <Window.InputBindings>
+        <KeyBinding Key="Escape" Command="{Binding CancelCommand}"/>
+    </Window.InputBindings>
+
     <Border CornerRadius="8"
             Background="{StaticResource BackgroundBrush}"
             BorderBrush="{StaticResource SurfaceBrush}"

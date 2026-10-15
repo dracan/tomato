@@ -15,6 +15,14 @@ public partial class SlackSetupDialog : Window
     public SlackSetupDialog(ISlackService slackService)
     {
         InitializeComponent();
+        PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Escape)
+            {
+                e.Handled = true;
+                OnCancel(this, new RoutedEventArgs());
+            }
+        };
         _slackService = slackService;
 
         Loaded += OnLoaded;

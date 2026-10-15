@@ -15,6 +15,10 @@
         WindowStyle="None"
         AllowsTransparency="True">
 
+    <Window.InputBindings>
+        <KeyBinding Key="Escape" Command="{Binding CancelCommand}"/>
+    </Window.InputBindings>
+
     <Border CornerRadius="8"
             Background="{StaticResource BackgroundBrush}"
             BorderBrush="{StaticResource SurfaceBrush}"
@@ -43,7 +47,7 @@
                      BorderThickness="1"
                      Padding="8"
                      FontSize="14"
-                     AcceptsReturn="True"
+                     AcceptsReturn="False"
                      TextWrapping="Wrap"
                      VerticalScrollBarVisibility="Auto"
                      x:Name="GoalTextBox"/>

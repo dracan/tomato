@@ -15,6 +15,14 @@ public partial class LuxaforSetupDialog : Window
     public LuxaforSetupDialog(ILuxaforService luxaforService)
     {
         InitializeComponent();
+        PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Escape)
+            {
+                e.Handled = true;
+                OnCancel(this, new RoutedEventArgs());
+            }
+        };
         _luxaforService = luxaforService;
 
         Loaded += OnLoaded;
