@@ -97,9 +97,10 @@ public class StatisticsReportServiceTests : IDisposable
         var reportPath = Path.Combine(_testReportsDirectory, "stats.html");
         var html = File.ReadAllText(reportPath);
 
-        html.Should().Contain("8"); // Focus sessions
-        html.Should().Contain("3h 20m"); // Total focus time (200 min)
-        html.Should().Contain("2"); // Cycles completed
+        StatValue(html, "Focus Sessions").Should().Be("8");
+        StatValue(html, "Focus Time").Should().Be("3h 20m");
+        StatValue(html, "Break Time").Should().Be("40m");
+        StatValue(html, "Cycles Completed").Should().Be("2");
     }
 
     [Fact]
@@ -147,7 +148,12 @@ public class StatisticsReportServiceTests : IDisposable
         var reportPath = Path.Combine(_testReportsDirectory, "stats.html");
         var html = File.ReadAllText(reportPath);
 
+        // Today (4 sessions, 100m focus, 15m break, 1 cycle) plus both history days
         html.Should().Contain("All-Time");
+        StatValue(html, "Total Sessions").Should().Be("14");
+        StatValue(html, "Total Focus Time").Should().Be("5h 50m");
+        StatValue(html, "Total Break Time").Should().Be("1h 5m");
+        StatValue(html, "Total Cycles").Should().Be("3");
     }
 
     [Fact]
@@ -206,8 +212,7 @@ public class StatisticsReportServiceTests : IDisposable
         var reportPath = Path.Combine(_testReportsDirectory, "stats.html");
         var html = File.ReadAllText(reportPath);
 
-        html.Should().Contain("Generated");
-        html.Should().Contain("2024");
+        html.Should().Contain("Generated January 15, 2024 at 2:30 PM");
     }
 
     [Fact]
@@ -498,5 +503,17 @@ public class StatisticsReportServiceTests : IDisposable
         var html = File.ReadAllText(reportPath);
 
         html.Should().Contain("function toggleRow");
+    }
+
+    /// <summary>
+    /// Gets the value shown on the stat card with the given label.
+    /// </summary>
+    private static string StatValue(string html, string label)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(
+            html,
+            "<span class=\"stat-value\">([^<]*)</span>\\s*<span class=\"stat-label\">" + label + "</span>");
+        match.Success.Should().BeTrue($"the report should have a \"{label}\" stat card");
+        return match.Groups[1].Value;
     }
 }
