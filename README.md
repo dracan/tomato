@@ -91,7 +91,7 @@ Extract the zip and run `Tomato.exe`.
 
 ## Building from Source
 
-Requires [.NET 8.0 SDK](https://dotnet.microsoft.com/download/dotnet/8.0).
+Requires [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
 
 ```bash
 dotnet build Tomato.sln

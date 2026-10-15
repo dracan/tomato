@@ -118,7 +118,7 @@ public class LuxaforServiceTests : IDisposable
         // Assert
         _httpHandler.RequestCount.Should().Be(1);
         _httpHandler.Requests[0].RequestUri!.ToString().Should().Contain("solid_color");
-        var content = await _httpHandler.Requests[0].Content!.ReadAsStringAsync();
+        var content = await _httpHandler.Requests[0].Content!.ReadAsStringAsync(TestContext.Current.CancellationToken);
         content.Should().Contain("\"color\":\"red\"");
         content.Should().Contain("\"userId\":\"test-user-id\"");
     }
@@ -162,7 +162,7 @@ public class LuxaforServiceTests : IDisposable
 
         // Assert
         _httpHandler.RequestCount.Should().Be(1);
-        var content = await _httpHandler.Requests[0].Content!.ReadAsStringAsync();
+        var content = await _httpHandler.Requests[0].Content!.ReadAsStringAsync(TestContext.Current.CancellationToken);
         content.Should().Contain("\"color\":\"custom\"");
         content.Should().Contain("\"custom_color\":\"000000\"");
     }

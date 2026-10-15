@@ -406,7 +406,7 @@ public class TimerViewModelTodoTests
             new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Completed));
 
         // Allow async operations to complete
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
 
         // Assert
         await _dialogService.Received(1).ShowResultsDialogAsync(
@@ -434,7 +434,7 @@ public class TimerViewModelTodoTests
             new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Completed));
 
         // Allow async operations to complete
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
 
         // Assert
         await _dialogService.Received(1).ShowResultsDialogAsync(

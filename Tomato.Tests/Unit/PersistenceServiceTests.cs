@@ -18,9 +18,9 @@ public class PersistenceServiceTests : IAsyncLifetime
         _sut = new PersistenceService(_testDirectory);
     }
 
-    public Task InitializeAsync() => Task.CompletedTask;
+    public ValueTask InitializeAsync() => ValueTask.CompletedTask;
 
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         await _sut.ClearAsync();
         if (Directory.Exists(_testDirectory))
@@ -187,7 +187,7 @@ public class PersistenceServiceTests : IAsyncLifetime
     public async Task LoadAsync_ReturnsNullForCorruptedFile()
     {
         // Arrange
-        await File.WriteAllTextAsync(_sut.StateFilePath, "not valid json {{{");
+        await File.WriteAllTextAsync(_sut.StateFilePath, "not valid json {{{", TestContext.Current.CancellationToken);
 
         // Act
         var result = await _sut.LoadAsync();

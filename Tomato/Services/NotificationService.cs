@@ -53,7 +53,7 @@ public sealed class NotificationService : INotificationService
             }
 
             _audioReader = new AudioFileReader(soundFile);
-            _wavePlayer = new WaveOutEvent();
+            _wavePlayer = new WaveOut();
             _wavePlayer.Init(_audioReader);
             _wavePlayer.Play();
 

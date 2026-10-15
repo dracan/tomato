@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Tomato is a Windows desktop Pomodoro timer application built with C# .NET 8.0 and WPF using MVVM architecture.
+Tomato is a Windows desktop Pomodoro timer application built with C# .NET 10.0 and WPF using MVVM architecture.
 
 ## Build and Test Commands
 

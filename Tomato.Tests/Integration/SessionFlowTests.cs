@@ -96,7 +96,7 @@ public class SessionFlowTests : IDisposable
         _sessionManager.StartFocus();
 
         // Wait for at least one tick
-        await Task.Delay(1500);
+        await Task.Delay(1500, TestContext.Current.CancellationToken);
         _sessionManager.Cancel();
 
         // Assert

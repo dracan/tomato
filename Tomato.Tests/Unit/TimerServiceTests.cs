@@ -132,7 +132,7 @@ public class TimerServiceTests : IDisposable
 
         // Act
         _sut.Start(TimeSpan.FromSeconds(3));
-        await Task.Delay(2500); // Wait for ~2 ticks
+        await Task.Delay(2500, TestContext.Current.CancellationToken); // Wait for ~2 ticks
 
         // Assert
         tickCount.Should().BeGreaterThanOrEqualTo(2);
@@ -148,7 +148,7 @@ public class TimerServiceTests : IDisposable
 
         // Act
         _sut.Start(TimeSpan.FromSeconds(1));
-        await Task.Delay(1500); // Wait for completion
+        await Task.Delay(1500, TestContext.Current.CancellationToken); // Wait for completion
 
         // Assert
         completed.Should().BeTrue();
@@ -170,7 +170,7 @@ public class TimerServiceTests : IDisposable
 
         // Act
         _sut.Start(duration);
-        await Task.Delay(1500);
+        await Task.Delay(1500, TestContext.Current.CancellationToken);
         _sut.Stop();
 
         // Assert

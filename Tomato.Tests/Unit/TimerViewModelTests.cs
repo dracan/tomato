@@ -506,7 +506,7 @@ public class TimerViewModelTests
             new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Completed));
 
         // Allow async operations to complete
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
 
         // Assert
         _sessionManager.Received(1).RecordSessionResults("Completed task", null);
@@ -526,7 +526,7 @@ public class TimerViewModelTests
             new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Completed));
 
         // Allow async operations to complete
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
 
         // Assert
         _sessionManager.DidNotReceive().RecordSessionResults(Arg.Any<string?>(), Arg.Any<int?>());
@@ -546,7 +546,7 @@ public class TimerViewModelTests
             new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Completed));
 
         // Allow async operations to complete
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
 
         // Assert - empty results should not be recorded
         _sessionManager.DidNotReceive().RecordSessionResults(Arg.Any<string?>(), Arg.Any<int?>());
@@ -566,7 +566,7 @@ public class TimerViewModelTests
             new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Completed));
 
         // Allow async operations to complete
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
 
         // Assert - rating alone should be recorded
         _sessionManager.Received(1).RecordSessionResults("", 4);
