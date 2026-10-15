@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using Tomato.Models;
@@ -10,6 +11,12 @@ namespace Tomato.Services;
 /// </summary>
 public sealed class StatisticsReportService : IStatisticsReportService
 {
+    /// <summary>
+    /// The report is written in English, so dates and times use English formats
+    /// whatever the Windows region setting.
+    /// </summary>
+    private static readonly CultureInfo ReportCulture = CultureInfo.InvariantCulture;
+
     private readonly ISessionManager _sessionManager;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly string _reportsDirectory;
@@ -93,7 +100,7 @@ public sealed class StatisticsReportService : IStatisticsReportService
         sb.AppendLine("    <div class=\"container\">");
         sb.AppendLine("        <header>");
         sb.AppendLine("            <h1>Tomato Statistics</h1>");
-        sb.AppendLine($"            <p class=\"timestamp\">Generated {now:MMMM d, yyyy} at {now:h:mm tt}</p>");
+        sb.AppendLine($"            <p class=\"timestamp\">Generated {now.ToString("MMMM d, yyyy", ReportCulture)} at {now.ToString("h:mm tt", ReportCulture)}</p>");
         sb.AppendLine("        </header>");
         sb.AppendLine();
 
@@ -543,7 +550,7 @@ public sealed class StatisticsReportService : IStatisticsReportService
                 foreach (var record in day.SessionRecords)
                 {
                     sb.AppendLine("                                <div class=\"history-session-item\">");
-                    sb.AppendLine($"                                    <div class=\"session-time\">{record.StartedAt:h:mm tt} - {record.CompletedAt:h:mm tt} ({FormatDuration(record.Duration)})</div>");
+                    sb.AppendLine($"                                    <div class=\"session-time\">{record.StartedAt.ToString("h:mm tt", ReportCulture)} - {record.CompletedAt.ToString("h:mm tt", ReportCulture)} ({FormatDuration(record.Duration)})</div>");
                     sb.AppendLine($"                                    <div class=\"session-rating\"><strong>Rating:</strong> {FormatRating(record.Rating)}</div>");
                     sb.AppendLine($"                                    <div class=\"session-goal\"><strong>Goal:</strong> {(string.IsNullOrWhiteSpace(record.Goal) ? "No goal set" : HtmlEncode(record.Goal))}</div>");
                     sb.AppendLine($"                                    <div class=\"session-results\"><strong>Results:</strong> {(string.IsNullOrWhiteSpace(record.Results) ? "No results recorded" : HtmlEncode(record.Results))}</div>");
@@ -604,7 +611,7 @@ public sealed class StatisticsReportService : IStatisticsReportService
         foreach (var record in todayStats.SessionRecords)
         {
             sb.AppendLine("                <div class=\"session-card\">");
-            sb.AppendLine($"                    <div class=\"session-time\">{record.StartedAt:h:mm tt} - {record.CompletedAt:h:mm tt} ({FormatDuration(record.Duration)})</div>");
+            sb.AppendLine($"                    <div class=\"session-time\">{record.StartedAt.ToString("h:mm tt", ReportCulture)} - {record.CompletedAt.ToString("h:mm tt", ReportCulture)} ({FormatDuration(record.Duration)})</div>");
             sb.AppendLine($"                    <div class=\"session-rating\"><strong>Rating:</strong> {FormatRating(record.Rating)}</div>");
             sb.AppendLine($"                    <div class=\"session-goal\"><strong>Goal:</strong> {(string.IsNullOrWhiteSpace(record.Goal) ? "No goal set" : HtmlEncode(record.Goal))}</div>");
             sb.AppendLine($"                    <div class=\"session-results\"><strong>Results:</strong> {(string.IsNullOrWhiteSpace(record.Results) ? "No results recorded" : HtmlEncode(record.Results))}</div>");

@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using FluentAssertions;
 using NSubstitute;
 using Tomato.Models;
@@ -276,6 +276,39 @@ public class StatisticsReportServiceTests : IDisposable
         html.Should().Contain("Today's Sessions");
         html.Should().Contain("Write unit tests");
         html.Should().Contain("Completed 5 tests");
+    }
+
+    [Fact]
+    public void GenerateReport_OnNonEnglishSystem_UsesEnglishDatesAndTimes()
+    {
+        // Arrange - German formats have no AM/PM and German month names
+        var todayStats = DailyStatistics.Create(new DateOnly(2024, 1, 15));
+        todayStats.RecordFocusSession(TimeSpan.FromMinutes(25));
+        todayStats.AddSessionRecord(new SessionRecord
+        {
+            Goal = "Test",
+            Duration = TimeSpan.FromMinutes(25),
+            StartedAt = new DateTime(2024, 1, 15, 14, 0, 0),
+            CompletedAt = new DateTime(2024, 1, 15, 14, 25, 0)
+        });
+        _sessionManager.TodayStatistics.Returns(todayStats);
+
+        var previous = System.Globalization.CultureInfo.CurrentCulture;
+        System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("de-DE");
+        try
+        {
+            // Act
+            _sut.GenerateReport();
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = previous;
+        }
+
+        // Assert
+        var html = File.ReadAllText(Path.Combine(_testReportsDirectory, "stats.html"));
+        html.Should().Contain("Generated January 15, 2024 at 2:30 PM");
+        html.Should().Contain("2:00 PM - 2:25 PM");
     }
 
     [Fact]
