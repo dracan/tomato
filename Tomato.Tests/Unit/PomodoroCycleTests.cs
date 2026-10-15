@@ -1,4 +1,4 @@
-using FluentAssertions;
+﻿using FluentAssertions;
 using Tomato.Models;
 
 namespace Tomato.Tests.Unit;
@@ -116,5 +116,21 @@ public class PomodoroCycleTests
 
         // Assert
         cycle.CompletedFocusSessions.Should().Be(3);
+    }
+
+    [Fact]
+    public void IncrementFocusCount_AfterCompleteCycle_StartsNextCycle()
+    {
+        // Arrange - 4 focus sessions, then no long break
+        var cycle = new PomodoroCycle();
+        for (int i = 0; i < 4; i++)
+            cycle.IncrementFocusCount();
+
+        // Act
+        cycle.IncrementFocusCount();
+
+        // Assert
+        cycle.CompletedFocusSessions.Should().Be(1);
+        cycle.IsCycleComplete.Should().BeFalse();
     }
 }

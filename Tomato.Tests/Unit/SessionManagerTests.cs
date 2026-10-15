@@ -415,6 +415,23 @@ public class SessionManagerTests
         sut.TodayStatistics.Date.Should().Be(today);
     }
 
+    [Fact]
+    public void CompletingFocusSessions_WithoutLongBreak_CountsOneCycleEveryFour()
+    {
+        // Arrange & Act - 6 focus sessions with only short breaks in between
+        for (int i = 0; i < 6; i++)
+        {
+            _sut.StartFocus();
+            _timerService.Completed += Raise.Event();
+            _sut.StartBreak();
+            _timerService.Completed += Raise.Event();
+        }
+
+        // Assert
+        _sut.TodayStatistics.CyclesCompleted.Should().Be(1);
+        _sut.Cycle.CompletedFocusSessions.Should().Be(2);
+    }
+
     #endregion
 
     #region US2: Start Break Session

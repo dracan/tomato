@@ -27,10 +27,16 @@ public sealed class PomodoroCycle
     public SessionType NextBreakType => IsCycleComplete ? SessionType.LongBreak : SessionType.ShortBreak;
 
     /// <summary>
-    /// Increments the completed focus session count.
+    /// Increments the completed focus session count. If the cycle was already
+    /// complete (no long break was taken), this starts the next cycle.
     /// </summary>
     public void IncrementFocusCount()
     {
+        if (IsCycleComplete)
+        {
+            CompletedFocusSessions = 0;
+        }
+
         CompletedFocusSessions++;
     }
 
