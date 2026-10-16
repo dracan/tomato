@@ -84,6 +84,20 @@ Tomato can automatically update your Slack status and enable Do Not Disturb when
 
 Your token is stored encrypted using Windows DPAPI at `%LOCALAPPDATA%\Tomato\slack.json`. If Slack rejects an update, the reason is written to `%LOCALAPPDATA%\Tomato\error.log`.
 
+## Saved data
+
+Tomato keeps its data in `%LOCALAPPDATA%\Tomato`:
+
+- `state.json`: the current session, cycle progress and all statistics history. A session running when the app closes is saved as paused, so you can resume it next time.
+- `error.log`: unexpected errors, and Slack updates that were rejected. It starts a new file once it passes 1 MB.
+- `slack.json` / `luxafor.json`: integration settings, encrypted with Windows DPAPI.
+
+To avoid losing history:
+
+- `state.json` is written to a temporary file first and then swapped in, so a crash or power cut during a save can't leave it half-written.
+- If `state.json` can't be read as valid data, it's renamed to `state.corrupt-<date>-<time>.json` (so the history in it can be recovered by hand) and the app starts with no history.
+- If `state.json` exists but is locked by another program (for example antivirus or a sync client) when Tomato starts, Tomato starts with no history and doesn't save anything until it's restarted, so the file isn't overwritten. Sessions from that run aren't kept.
+
 ## Download
 
 Download the latest release from the [Releases](https://github.com/dracan/tomato/releases) page.
