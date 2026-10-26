@@ -181,6 +181,59 @@ public class TimerServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task CountPastZero_RaisesCompletedOnceAndKeepsCountingBelowZero()
+    {
+        // Arrange
+        var completedCount = 0;
+        TimeSpan? lastRemaining = null;
+        _sut.Completed += (_, _) => completedCount++;
+        _sut.Tick += (_, e) => lastRemaining = e.Remaining;
+
+        // Act
+        _sut.Start(TimeSpan.FromMilliseconds(300), countPastZero: true);
+        await Task.Delay(1500, TestContext.Current.CancellationToken);
+
+        // Assert
+        completedCount.Should().Be(1);
+        _sut.IsRunning.Should().BeTrue();
+        lastRemaining.Should().BeLessThan(TimeSpan.Zero);
+        _sut.Stop();
+    }
+
+    [Fact]
+    public async Task CountPastZero_Pause_KeepsNegativeRemaining()
+    {
+        // Arrange
+        _sut.Start(TimeSpan.FromMilliseconds(100), countPastZero: true);
+        await Task.Delay(700, TestContext.Current.CancellationToken);
+
+        // Act
+        _sut.Pause();
+
+        // Assert
+        _sut.Remaining.Should().BeLessThan(TimeSpan.Zero);
+    }
+
+    [Fact]
+    public async Task CountPastZero_ResumeAlreadyBelowZero_DoesNotRaiseCompletedAgain()
+    {
+        // Arrange
+        var completed = false;
+        TimeSpan? lastRemaining = null;
+        _sut.Completed += (_, _) => completed = true;
+        _sut.Tick += (_, e) => lastRemaining = e.Remaining;
+
+        // Act
+        _sut.Resume(TimeSpan.FromMinutes(-3), countPastZero: true);
+        await Task.Delay(700, TestContext.Current.CancellationToken);
+
+        // Assert
+        completed.Should().BeFalse();
+        lastRemaining.Should().BeLessThan(TimeSpan.FromMinutes(-3));
+        _sut.Stop();
+    }
+
+    [Fact]
     public void IsRunning_IsFalseInitially()
     {
         // Assert

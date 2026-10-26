@@ -34,7 +34,8 @@ public interface ITimerService : IDisposable
     event EventHandler<TimerTickEventArgs>? Tick;
 
     /// <summary>
-    /// Occurs when the timer completes (reaches zero).
+    /// Occurs when the countdown reaches zero. The timer stops then, unless it
+    /// was started to count past zero, in which case it keeps ticking below zero.
     /// </summary>
     event EventHandler? Completed;
 
@@ -44,7 +45,7 @@ public interface ITimerService : IDisposable
     bool IsRunning { get; }
 
     /// <summary>
-    /// Gets the time remaining.
+    /// Gets the time remaining. Negative once a timer counting past zero has gone below zero.
     /// </summary>
     TimeSpan Remaining { get; }
 
@@ -52,13 +53,15 @@ public interface ITimerService : IDisposable
     /// Starts the timer with the specified duration.
     /// </summary>
     /// <param name="duration">The duration to count down from.</param>
-    void Start(TimeSpan duration);
+    /// <param name="countPastZero">Whether to keep counting below zero instead of stopping.</param>
+    void Start(TimeSpan duration, bool countPastZero = false);
 
     /// <summary>
     /// Resumes the timer with the specified remaining time.
     /// </summary>
     /// <param name="remaining">The time remaining to continue from.</param>
-    void Resume(TimeSpan remaining);
+    /// <param name="countPastZero">Whether to keep counting below zero instead of stopping.</param>
+    void Resume(TimeSpan remaining, bool countPastZero = false);
 
     /// <summary>
     /// Pauses the timer.

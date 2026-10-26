@@ -34,6 +34,11 @@ public sealed class AppState
     public List<DailyStatisticsState> StatisticsHistory { get; set; } = new();
 
     /// <summary>
+    /// Gets or sets whether new focus sessions keep running past their Estimate (Overtime).
+    /// </summary>
+    public bool OvertimeEnabled { get; set; }
+
+    /// <summary>
     /// Represents a serializable session state.
     /// </summary>
     public sealed class SessionState
@@ -45,6 +50,7 @@ public sealed class AppState
         public DateTime? StartedAt { get; set; }
         public DateTime? CompletedAt { get; set; }
         public string? Goal { get; set; }
+        public bool AllowsOvertime { get; set; }
     }
 
     /// <summary>
@@ -77,7 +83,17 @@ public sealed class AppState
         public string? Goal { get; set; }
         public string? Results { get; set; }
         public int? Rating { get; set; }
+
+        /// <summary>
+        /// The Estimate; missing from records saved before Estimates were tracked.
+        /// </summary>
+        public TimeSpan? Estimate { get; set; }
+
+        /// <summary>
+        /// The Time Spent. Kept under its original name so older saved data still reads.
+        /// </summary>
         public TimeSpan Duration { get; set; }
+
         public DateTime StartedAt { get; set; }
         public DateTime CompletedAt { get; set; }
     }
@@ -98,11 +114,13 @@ public sealed class AppState
         PomodoroCycle cycle,
         DailyStatistics? todayStatistics,
         IReadOnlyList<DailyStatistics> statisticsHistory,
-        DateTime savedAt)
+        DateTime savedAt,
+        bool overtimeEnabled = false)
     {
         var state = new AppState
         {
             LastSavedAt = savedAt,
+            OvertimeEnabled = overtimeEnabled,
             Cycle = new CycleState
             {
                 CompletedFocusSessions = cycle.CompletedFocusSessions
@@ -119,7 +137,8 @@ public sealed class AppState
                 TimeRemaining = currentSession.TimeRemaining,
                 StartedAt = currentSession.StartedAt,
                 CompletedAt = currentSession.CompletedAt,
-                Goal = currentSession.Goal
+                Goal = currentSession.Goal,
+                AllowsOvertime = currentSession.AllowsOvertime
             };
         }
 
@@ -138,7 +157,8 @@ public sealed class AppState
                         Goal = r.Goal,
                         Results = r.Results,
                         Rating = r.Rating,
-                        Duration = r.Duration,
+                        Estimate = r.Estimate,
+                        Duration = r.TimeSpent,
                         StartedAt = r.StartedAt,
                         CompletedAt = r.CompletedAt
                     })
@@ -182,7 +202,8 @@ public sealed class AppState
                             Goal = r.Goal,
                             Results = r.Results,
                             Rating = r.Rating,
-                            Duration = r.Duration,
+                            Estimate = r.Estimate,
+                            Duration = r.TimeSpent,
                             StartedAt = r.StartedAt,
                             CompletedAt = r.CompletedAt
                         })
@@ -213,7 +234,8 @@ public sealed class AppState
                         Goal = r.Goal,
                         Results = r.Results,
                         Rating = r.Rating,
-                        Duration = r.Duration,
+                        Estimate = r.Estimate,
+                        Duration = r.TimeSpent,
                         StartedAt = r.StartedAt,
                         CompletedAt = r.CompletedAt
                     })
@@ -242,7 +264,7 @@ public sealed class AppState
 
         var session = CurrentSession.Type switch
         {
-            SessionType.Focus => Session.CreateFocus(CurrentSession.Duration, CurrentSession.Goal),
+            SessionType.Focus => Session.CreateFocus(CurrentSession.Duration, CurrentSession.Goal, CurrentSession.AllowsOvertime),
             SessionType.ShortBreak => Session.CreateShortBreak(CurrentSession.Duration),
             SessionType.LongBreak => Session.CreateLongBreak(CurrentSession.Duration),
             _ => Session.CreateFocus(CurrentSession.Duration, CurrentSession.Goal)
@@ -289,7 +311,8 @@ public sealed class AppState
                 Goal = recordState.Goal,
                 Results = recordState.Results,
                 Rating = recordState.Rating,
-                Duration = recordState.Duration,
+                Estimate = recordState.Estimate,
+                TimeSpent = recordState.Duration,
                 StartedAt = recordState.StartedAt,
                 CompletedAt = recordState.CompletedAt
             });
@@ -331,7 +354,8 @@ public sealed class AppState
                     Goal = recordState.Goal,
                     Results = recordState.Results,
                     Rating = recordState.Rating,
-                    Duration = recordState.Duration,
+                    Estimate = recordState.Estimate,
+                    TimeSpent = recordState.Duration,
                     StartedAt = recordState.StartedAt,
                     CompletedAt = recordState.CompletedAt
                 });

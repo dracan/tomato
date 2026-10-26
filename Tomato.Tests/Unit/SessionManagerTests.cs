@@ -679,7 +679,7 @@ public class SessionManagerTests
         _sut.TodayStatistics.SessionRecords.Should().HaveCount(1);
         var record = _sut.TodayStatistics.SessionRecords[0];
         record.Goal.Should().Be("Write tests");
-        record.Duration.Should().Be(TimeSpan.FromMinutes(25));
+        record.TimeSpent.Should().Be(TimeSpan.FromMinutes(25));
         record.StartedAt.Should().Be(startTime);
         record.CompletedAt.Should().Be(endTime);
         record.Results.Should().BeNull();
@@ -1124,6 +1124,296 @@ public class SessionManagerTests
 
         // Assert
         _persistenceService.Received(1).SaveAsync(Arg.Any<AppState>());
+    }
+
+    #endregion
+
+    #region Estimates, Overtime and Done
+
+    [Fact]
+    public void StartFocus_WithOvertimeEnabled_StartsTimerCountingPastZero()
+    {
+        // Arrange
+        _sut.OvertimeEnabled = true;
+
+        // Act
+        _sut.StartFocus(TimeSpan.FromMinutes(15), "Fix bug");
+
+        // Assert
+        _sut.CurrentSession!.AllowsOvertime.Should().BeTrue();
+        _timerService.Received(1).Start(TimeSpan.FromMinutes(15), true);
+    }
+
+    [Fact]
+    public void StartFocus_WithOvertimeDisabled_StartsTimerStoppingAtZero()
+    {
+        // Act
+        _sut.StartFocus(TimeSpan.FromMinutes(15), "Fix bug");
+
+        // Assert
+        _sut.CurrentSession!.AllowsOvertime.Should().BeFalse();
+        _timerService.Received(1).Start(TimeSpan.FromMinutes(15), false);
+    }
+
+    [Fact]
+    public void StartBreak_WithOvertimeEnabled_DoesNotAllowOvertime()
+    {
+        // Arrange
+        _sut.OvertimeEnabled = true;
+
+        // Act
+        _sut.StartBreak();
+
+        // Assert
+        _sut.CurrentSession!.AllowsOvertime.Should().BeFalse();
+    }
+
+    [Fact]
+    public void EstimateRunsOut_WithOvertime_KeepsSessionRunningInOvertime()
+    {
+        // Arrange
+        _sut.OvertimeEnabled = true;
+        _sut.StartFocus(TimeSpan.FromMinutes(15), "Fix bug");
+        SessionStateChangedEventArgs? raised = null;
+        _sut.SessionStateChanged += (_, e) => raised = e;
+
+        // Act
+        _timerService.Completed += Raise.Event();
+
+        // Assert
+        _sut.CurrentSession!.Status.Should().Be(SessionStatus.Running);
+        _sut.CurrentSession.IsInOvertime.Should().BeTrue();
+        _sut.TodayStatistics.FocusSessionsCompleted.Should().Be(0);
+        raised.Should().NotBeNull();
+        raised!.PreviousStatus.Should().Be(SessionStatus.Running);
+        raised.NewStatus.Should().Be(SessionStatus.Running);
+    }
+
+    [Fact]
+    public void EstimateRunsOut_WithOvertime_PlaysCompletionSoundOnce()
+    {
+        // Arrange
+        _sut.OvertimeEnabled = true;
+        _sut.StartFocus(TimeSpan.FromMinutes(15), "Fix bug");
+
+        // Act
+        _timerService.Completed += Raise.Event();
+
+        // Assert
+        _notificationService.Received(1).PlayCompletionSoundAsync(SessionType.Focus);
+    }
+
+    [Fact]
+    public void OvertimeEnabled_ChangedMidSession_AppliesFromNextSession()
+    {
+        // Arrange
+        _sut.StartFocus(TimeSpan.FromMinutes(15), "Fix bug");
+
+        // Act
+        _sut.OvertimeEnabled = true;
+        _timerService.Completed += Raise.Event();
+
+        // Assert - the current session ended at zero as it started
+        _sut.CurrentSession!.Status.Should().Be(SessionStatus.Completed);
+    }
+
+    [Fact]
+    public void OvertimeEnabled_WhenChanged_IsSaved()
+    {
+        // Arrange
+        AppState? saved = null;
+        _persistenceService.SaveAsync(Arg.Do<AppState>(s => saved = s));
+
+        // Act
+        _sut.OvertimeEnabled = true;
+
+        // Assert
+        saved!.OvertimeEnabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RestoreStateAsync_RestoresOvertimeEnabled()
+    {
+        // Arrange
+        _persistenceService.LoadAsync().Returns(new AppState { OvertimeEnabled = true });
+
+        // Act
+        await _sut.RestoreStateAsync();
+
+        // Assert
+        _sut.OvertimeEnabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public void MarkDone_FinishedEarly_RecordsTimeSpent()
+    {
+        // Arrange
+        _sut.StartFocus(TimeSpan.FromMinutes(15), "Fix bug");
+        _timerService.Remaining.Returns(TimeSpan.FromMinutes(3));
+
+        // Act
+        _sut.MarkDone();
+
+        // Assert
+        _sut.CurrentSession!.Status.Should().Be(SessionStatus.Completed);
+        _sut.TodayStatistics.FocusSessionsCompleted.Should().Be(1);
+        _sut.TodayStatistics.TotalFocusTime.Should().Be(TimeSpan.FromMinutes(12));
+        var record = _sut.TodayStatistics.SessionRecords.Should().ContainSingle().Subject;
+        record.Estimate.Should().Be(TimeSpan.FromMinutes(15));
+        record.TimeSpent.Should().Be(TimeSpan.FromMinutes(12));
+    }
+
+    [Fact]
+    public void MarkDone_InOvertime_RecordsTimeSpentIncludingOvertime()
+    {
+        // Arrange
+        _sut.OvertimeEnabled = true;
+        _sut.StartFocus(TimeSpan.FromMinutes(15), "Fix bug");
+        _timerService.Completed += Raise.Event();
+        _timerService.Remaining.Returns(TimeSpan.FromMinutes(-4));
+
+        // Act
+        _sut.MarkDone();
+
+        // Assert
+        _sut.TodayStatistics.TotalFocusTime.Should().Be(TimeSpan.FromMinutes(19));
+        _sut.TodayStatistics.SessionRecords.Should().ContainSingle()
+            .Which.TimeSpent.Should().Be(TimeSpan.FromMinutes(19));
+    }
+
+    [Fact]
+    public void MarkDone_WhilePaused_RecordsTimeSpentUpToThePause()
+    {
+        // Arrange
+        _sut.StartFocus(TimeSpan.FromMinutes(15), "Fix bug");
+        _timerService.Remaining.Returns(TimeSpan.FromMinutes(5));
+        _sut.Pause();
+        _timerService.Remaining.Returns(TimeSpan.Zero);
+
+        // Act
+        _sut.MarkDone();
+
+        // Assert
+        _sut.TodayStatistics.TotalFocusTime.Should().Be(TimeSpan.FromMinutes(10));
+    }
+
+    [Fact]
+    public void MarkDone_CountsTowardsTheCycle()
+    {
+        // Arrange
+        _sut.StartFocus(TimeSpan.FromMinutes(5), "Quick task");
+
+        // Act
+        _sut.MarkDone();
+
+        // Assert
+        _sut.Cycle.CompletedFocusSessions.Should().Be(1);
+    }
+
+    [Fact]
+    public void MarkDone_DuringBreak_DoesNothing()
+    {
+        // Arrange
+        _sut.StartBreak();
+
+        // Act
+        _sut.MarkDone();
+
+        // Assert
+        _sut.CurrentSession!.Status.Should().Be(SessionStatus.Running);
+    }
+
+    [Fact]
+    public void EstimateRunsOut_WithoutOvertime_RecordsTheEstimateAsTimeSpent()
+    {
+        // Arrange
+        _sut.StartFocus(TimeSpan.FromMinutes(15), "Fix bug");
+
+        // Act
+        _timerService.Completed += Raise.Event();
+
+        // Assert
+        _sut.TodayStatistics.SessionRecords.Should().ContainSingle()
+            .Which.TimeSpent.Should().Be(TimeSpan.FromMinutes(15));
+    }
+
+    [Fact]
+    public void Pause_InOvertime_KeepsNegativeTimeRemaining()
+    {
+        // Arrange
+        _sut.OvertimeEnabled = true;
+        _sut.StartFocus(TimeSpan.FromMinutes(15), "Fix bug");
+        _timerService.Completed += Raise.Event();
+        _timerService.Remaining.Returns(TimeSpan.FromMinutes(-2));
+
+        // Act
+        _sut.Pause();
+
+        // Assert
+        _sut.CurrentSession!.TimeRemaining.Should().Be(TimeSpan.FromMinutes(-2));
+        _sut.CurrentSession.IsInOvertime.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Resume_InOvertime_ResumesTimerCountingPastZero()
+    {
+        // Arrange
+        _sut.OvertimeEnabled = true;
+        _sut.StartFocus(TimeSpan.FromMinutes(15), "Fix bug");
+        _timerService.Completed += Raise.Event();
+        _timerService.Remaining.Returns(TimeSpan.FromMinutes(-2));
+        _sut.Pause();
+
+        // Act
+        _sut.Resume();
+
+        // Assert
+        _timerService.Received(1).Resume(TimeSpan.FromMinutes(-2), true);
+    }
+
+    [Fact]
+    public void Restart_InOvertime_GoesBackToTheFullEstimate()
+    {
+        // Arrange
+        _sut.OvertimeEnabled = true;
+        _sut.StartFocus(TimeSpan.FromMinutes(15), "Fix bug");
+        _timerService.Completed += Raise.Event();
+        _timerService.Remaining.Returns(TimeSpan.FromMinutes(-2));
+
+        // Act
+        _sut.Restart();
+
+        // Assert
+        _sut.CurrentSession!.TimeRemaining.Should().Be(TimeSpan.FromMinutes(15));
+        _sut.CurrentSession.IsInOvertime.Should().BeFalse();
+        _sut.CurrentSession.AllowsOvertime.Should().BeTrue();
+        _timerService.Received(2).Start(TimeSpan.FromMinutes(15), true);
+    }
+
+    [Fact]
+    public async Task RestoreStateAsync_SessionInOvertime_RestoresPausedStillInOvertime()
+    {
+        // Arrange
+        _persistenceService.LoadAsync().Returns(new AppState
+        {
+            CurrentSession = new AppState.SessionState
+            {
+                Type = SessionType.Focus,
+                Status = SessionStatus.Running,
+                Duration = TimeSpan.FromMinutes(15),
+                TimeRemaining = TimeSpan.FromMinutes(-3),
+                AllowsOvertime = true,
+                Goal = "Fix bug"
+            }
+        });
+
+        // Act
+        await _sut.RestoreStateAsync();
+
+        // Assert
+        _sut.CurrentSession!.Status.Should().Be(SessionStatus.Paused);
+        _sut.CurrentSession.TimeRemaining.Should().Be(TimeSpan.FromMinutes(-3));
+        _sut.CurrentSession.IsInOvertime.Should().BeTrue();
     }
 
     #endregion

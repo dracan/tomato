@@ -14,6 +14,7 @@ public sealed class SessionManager : ISessionManager
     private List<DailyStatistics> _statisticsHistory = new();
     private DailyStatistics _todayStatistics;
     private SessionRecord? _lastCompletedSessionRecord;
+    private bool _overtimeEnabled;
 
     /// <inheritdoc />
     public event EventHandler<SessionStateChangedEventArgs>? SessionStateChanged;
@@ -45,6 +46,20 @@ public sealed class SessionManager : ISessionManager
     /// <inheritdoc />
     public IReadOnlyList<DailyStatistics> StatisticsHistory => _statisticsHistory;
 
+    /// <inheritdoc />
+    public bool OvertimeEnabled
+    {
+        get => _overtimeEnabled;
+        set
+        {
+            if (_overtimeEnabled == value)
+                return;
+
+            _overtimeEnabled = value;
+            PersistState();
+        }
+    }
+
     public SessionManager(
         ITimerService timerService,
         INotificationService notificationService,
@@ -67,13 +82,14 @@ public sealed class SessionManager : ISessionManager
     public void StartFocus() => StartFocus(goal: null);
 
     /// <inheritdoc />
-    public void StartFocus(string? goal) => StartSession(Session.CreateFocus(goal));
+    public void StartFocus(string? goal) => StartFocus(TimeSpan.FromMinutes(25), goal);
 
     /// <inheritdoc />
     public void StartFocus(TimeSpan duration) => StartFocus(duration, goal: null);
 
     /// <inheritdoc />
-    public void StartFocus(TimeSpan duration, string? goal) => StartSession(Session.CreateFocus(duration, goal));
+    public void StartFocus(TimeSpan duration, string? goal) =>
+        StartSession(Session.CreateFocus(duration, goal, OvertimeEnabled));
 
     /// <inheritdoc />
     public void StartBreak() => StartSession(Session.CreateShortBreak());
@@ -106,7 +122,7 @@ public sealed class SessionManager : ISessionManager
             return;
 
         var previousStatus = CurrentSession.Status;
-        _timerService.Resume(CurrentSession.TimeRemaining);
+        _timerService.Resume(CurrentSession.TimeRemaining, CurrentSession.AllowsOvertime);
         CurrentSession.Status = SessionStatus.Running;
 
         RaiseSessionStateChanged(previousStatus, SessionStatus.Running);
@@ -125,6 +141,28 @@ public sealed class SessionManager : ISessionManager
     {
         if (CurrentSession == null)
             return;
+
+        if (CurrentSession.Type == SessionType.Focus)
+        {
+            MarkDone();
+            return;
+        }
+
+        _timerService.Stop();
+        CompleteSession();
+    }
+
+    /// <inheritdoc />
+    public void MarkDone()
+    {
+        if (CurrentSession is not { Type: SessionType.Focus, Status: SessionStatus.Running or SessionStatus.Paused })
+            return;
+
+        // A paused session already holds the time remaining at the pause
+        if (CurrentSession.Status == SessionStatus.Running)
+        {
+            CurrentSession.SetTimeRemaining(_timerService.Remaining);
+        }
 
         _timerService.Stop();
         CompleteSession();
@@ -154,12 +192,13 @@ public sealed class SessionManager : ISessionManager
         var type = CurrentSession.Type;
         var duration = CurrentSession.Duration;
         var goal = CurrentSession.Goal;
+        var allowsOvertime = CurrentSession.AllowsOvertime;
 
         _timerService.Stop();
 
         CurrentSession = type switch
         {
-            SessionType.Focus => Session.CreateFocus(duration, goal),
+            SessionType.Focus => Session.CreateFocus(duration, goal, allowsOvertime),
             SessionType.ShortBreak => Session.CreateShortBreak(duration),
             SessionType.LongBreak => Session.CreateLongBreak(duration),
             _ => Session.CreateFocus(duration, goal)
@@ -168,7 +207,7 @@ public sealed class SessionManager : ISessionManager
         CurrentSession.Status = SessionStatus.Running;
         CurrentSession.StartedAt = _dateTimeProvider.Now;
 
-        _timerService.Start(duration);
+        _timerService.Start(duration, allowsOvertime);
 
         RaiseSessionStateChanged(SessionStatus.NotStarted, SessionStatus.Running);
         PersistState();
@@ -194,6 +233,8 @@ public sealed class SessionManager : ISessionManager
         var state = await _persistenceService.LoadAsync();
         if (state == null)
             return;
+
+        _overtimeEnabled = state.OvertimeEnabled;
 
         // Restore cycle
         Cycle = state.RestoreCycle();
@@ -256,7 +297,7 @@ public sealed class SessionManager : ISessionManager
         CurrentSession.Status = SessionStatus.Running;
         CurrentSession.StartedAt = _dateTimeProvider.Now;
 
-        _timerService.Start(CurrentSession.Duration);
+        _timerService.Start(CurrentSession.Duration, CurrentSession.AllowsOvertime);
 
         RaiseSessionStateChanged(SessionStatus.NotStarted, SessionStatus.Running);
         PersistState();
@@ -285,7 +326,31 @@ public sealed class SessionManager : ISessionManager
 
     private void OnTimerCompleted(object? sender, EventArgs e)
     {
+        if (CurrentSession == null)
+            return;
+
+        if (CurrentSession.AllowsOvertime)
+        {
+            EnterOvertime();
+            return;
+        }
+
+        CurrentSession.SetTimeRemaining(TimeSpan.Zero);
         CompleteSession();
+    }
+
+    /// <summary>
+    /// The Estimate has run out, but the session carries on until it is marked done.
+    /// </summary>
+    private void EnterOvertime()
+    {
+        var remaining = _timerService.Remaining;
+        CurrentSession!.SetTimeRemaining(remaining > TimeSpan.Zero ? TimeSpan.Zero : remaining);
+
+        _ = _notificationService.PlayCompletionSoundAsync(CurrentSession.Type);
+
+        PersistState();
+        RaiseSessionStateChanged(SessionStatus.Running, SessionStatus.Running);
     }
 
     private void CompleteSession()
@@ -296,12 +361,11 @@ public sealed class SessionManager : ISessionManager
         var previousStatus = CurrentSession.Status;
         CurrentSession.Status = SessionStatus.Completed;
         CurrentSession.CompletedAt = _dateTimeProvider.Now;
-        CurrentSession.SetTimeRemaining(TimeSpan.Zero);
 
         // Update statistics and cycle based on session type
         if (CurrentSession.Type == SessionType.Focus)
         {
-            TodayStatistics.RecordFocusSession(CurrentSession.Duration);
+            TodayStatistics.RecordFocusSession(CurrentSession.TimeSpent);
             Cycle.IncrementFocusCount();
 
             if (Cycle.IsCycleComplete)
@@ -314,7 +378,8 @@ public sealed class SessionManager : ISessionManager
             {
                 Goal = CurrentSession.Goal,
                 Results = null,
-                Duration = CurrentSession.Duration,
+                Estimate = CurrentSession.Duration,
+                TimeSpent = CurrentSession.TimeSpent,
                 StartedAt = CurrentSession.StartedAt ?? _dateTimeProvider.Now,
                 CompletedAt = CurrentSession.CompletedAt ?? _dateTimeProvider.Now
             };
@@ -322,6 +387,7 @@ public sealed class SessionManager : ISessionManager
         }
         else
         {
+            CurrentSession.SetTimeRemaining(TimeSpan.Zero);
             TodayStatistics.RecordBreakSession(CurrentSession.Duration);
 
             // Reset cycle after long break
@@ -358,5 +424,6 @@ public sealed class SessionManager : ISessionManager
         Cycle,
         TodayStatistics,
         _statisticsHistory,
-        _dateTimeProvider.Now);
+        _dateTimeProvider.Now,
+        OvertimeEnabled);
 }

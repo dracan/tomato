@@ -16,14 +16,34 @@ public sealed class Session
     public SessionStatus Status { get; set; }
 
     /// <summary>
-    /// Gets the configured duration for this session.
+    /// Gets the configured duration for this session. For a focus session this is its Estimate.
     /// </summary>
     public TimeSpan Duration { get; }
 
     /// <summary>
-    /// Gets the time remaining in the session.
+    /// Gets the time remaining in the session. It goes below zero once a session
+    /// that allows Overtime runs past its Estimate.
     /// </summary>
     public TimeSpan TimeRemaining { get; private set; }
+
+    /// <summary>
+    /// Gets whether this session keeps running past its Estimate (Overtime) instead of
+    /// ending when the time runs out. Decided when the session starts.
+    /// </summary>
+    public bool AllowsOvertime { get; }
+
+    /// <summary>
+    /// Gets how long the session has actually run, not counting pauses.
+    /// </summary>
+    public TimeSpan TimeSpent => Duration - TimeRemaining;
+
+    /// <summary>
+    /// Gets whether the session is still going after its Estimate has run out.
+    /// </summary>
+    public bool IsInOvertime =>
+        AllowsOvertime &&
+        TimeRemaining <= TimeSpan.Zero &&
+        Status is SessionStatus.Running or SessionStatus.Paused;
 
     /// <summary>
     /// Gets or sets the time when this session was started.
@@ -40,13 +60,14 @@ public sealed class Session
     /// </summary>
     public string? Goal { get; }
 
-    private Session(SessionType type, TimeSpan duration, string? goal = null)
+    private Session(SessionType type, TimeSpan duration, string? goal = null, bool allowsOvertime = false)
     {
         Type = type;
         Duration = duration;
         TimeRemaining = duration;
         Status = SessionStatus.NotStarted;
         Goal = goal;
+        AllowsOvertime = allowsOvertime;
     }
 
     /// <summary>
@@ -61,8 +82,9 @@ public sealed class Session
     /// </summary>
     /// <param name="duration">The duration for this focus session.</param>
     /// <param name="goal">Optional goal for this focus session.</param>
-    public static Session CreateFocus(TimeSpan duration, string? goal = null)
-        => new(SessionType.Focus, duration, goal);
+    /// <param name="allowsOvertime">Whether the session keeps running past its Estimate.</param>
+    public static Session CreateFocus(TimeSpan duration, string? goal = null, bool allowsOvertime = false)
+        => new(SessionType.Focus, duration, goal, allowsOvertime);
 
     /// <summary>
     /// Creates a new Short Break session with the default 5-minute duration.
@@ -94,11 +116,7 @@ public sealed class Session
     /// <param name="elapsed">The time that has elapsed since last update.</param>
     public void UpdateTimeRemaining(TimeSpan elapsed)
     {
-        TimeRemaining = TimeRemaining - elapsed;
-        if (TimeRemaining < TimeSpan.Zero)
-        {
-            TimeRemaining = TimeSpan.Zero;
-        }
+        SetTimeRemaining(TimeRemaining - elapsed);
     }
 
     /// <summary>
@@ -107,7 +125,7 @@ public sealed class Session
     /// <param name="remaining">The time remaining.</param>
     public void SetTimeRemaining(TimeSpan remaining)
     {
-        TimeRemaining = remaining < TimeSpan.Zero ? TimeSpan.Zero : remaining;
+        TimeRemaining = remaining < TimeSpan.Zero && !AllowsOvertime ? TimeSpan.Zero : remaining;
     }
 
     /// <summary>

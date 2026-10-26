@@ -354,6 +354,7 @@ public sealed class StatisticsReportService : IStatisticsReportService
             margin-bottom: 0.5rem;
         }
 
+        .session-estimate,
         .session-goal,
         .session-results {
             color: var(--text-secondary);
@@ -550,7 +551,8 @@ public sealed class StatisticsReportService : IStatisticsReportService
                 foreach (var record in day.SessionRecords)
                 {
                     sb.AppendLine("                                <div class=\"history-session-item\">");
-                    sb.AppendLine($"                                    <div class=\"session-time\">{record.StartedAt.ToString("h:mm tt", ReportCulture)} - {record.CompletedAt.ToString("h:mm tt", ReportCulture)} ({FormatDuration(record.Duration)})</div>");
+                    sb.AppendLine($"                                    <div class=\"session-time\">{record.StartedAt.ToString("h:mm tt", ReportCulture)} - {record.CompletedAt.ToString("h:mm tt", ReportCulture)} ({FormatDuration(record.TimeSpent)})</div>");
+                    sb.Append(FormatEstimate(record, "                                    "));
                     sb.AppendLine($"                                    <div class=\"session-rating\"><strong>Rating:</strong> {FormatRating(record.Rating)}</div>");
                     sb.AppendLine($"                                    <div class=\"session-goal\"><strong>Goal:</strong> {(string.IsNullOrWhiteSpace(record.Goal) ? "No goal set" : HtmlEncode(record.Goal))}</div>");
                     sb.AppendLine($"                                    <div class=\"session-results\"><strong>Results:</strong> {(string.IsNullOrWhiteSpace(record.Results) ? "No results recorded" : HtmlEncode(record.Results))}</div>");
@@ -611,7 +613,8 @@ public sealed class StatisticsReportService : IStatisticsReportService
         foreach (var record in todayStats.SessionRecords)
         {
             sb.AppendLine("                <div class=\"session-card\">");
-            sb.AppendLine($"                    <div class=\"session-time\">{record.StartedAt.ToString("h:mm tt", ReportCulture)} - {record.CompletedAt.ToString("h:mm tt", ReportCulture)} ({FormatDuration(record.Duration)})</div>");
+            sb.AppendLine($"                    <div class=\"session-time\">{record.StartedAt.ToString("h:mm tt", ReportCulture)} - {record.CompletedAt.ToString("h:mm tt", ReportCulture)} ({FormatDuration(record.TimeSpent)})</div>");
+            sb.Append(FormatEstimate(record, "                    "));
             sb.AppendLine($"                    <div class=\"session-rating\"><strong>Rating:</strong> {FormatRating(record.Rating)}</div>");
             sb.AppendLine($"                    <div class=\"session-goal\"><strong>Goal:</strong> {(string.IsNullOrWhiteSpace(record.Goal) ? "No goal set" : HtmlEncode(record.Goal))}</div>");
             sb.AppendLine($"                    <div class=\"session-results\"><strong>Results:</strong> {(string.IsNullOrWhiteSpace(record.Results) ? "No results recorded" : HtmlEncode(record.Results))}</div>");
@@ -696,6 +699,15 @@ public sealed class StatisticsReportService : IStatisticsReportService
 
         return $"{minutes}m";
     }
+
+    /// <summary>
+    /// Formats the line comparing Time Spent with the Estimate, or nothing for
+    /// sessions recorded before Estimates were tracked.
+    /// </summary>
+    private static string FormatEstimate(SessionRecord record, string indent) =>
+        record.Estimate is { } estimate
+            ? $"{indent}<div class=\"session-estimate\">{EstimateSummary.Describe(estimate, record.TimeSpent)}</div>{Environment.NewLine}"
+            : string.Empty;
 
     private static string FormatRating(int? rating)
     {

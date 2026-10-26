@@ -36,7 +36,8 @@ public class SessionStateChangedEventArgs : EventArgs
 public interface ISessionManager
 {
     /// <summary>
-    /// Occurs when the session state changes.
+    /// Occurs when the session state changes. Also raised, from Running to Running,
+    /// when a focus session goes into Overtime.
     /// </summary>
     event EventHandler<SessionStateChangedEventArgs>? SessionStateChanged;
 
@@ -64,6 +65,12 @@ public interface ISessionManager
     /// Gets the historical daily statistics.
     /// </summary>
     IReadOnlyList<DailyStatistics> StatisticsHistory { get; }
+
+    /// <summary>
+    /// Gets or sets whether new focus sessions keep running past their Estimate (Overtime)
+    /// until marked done. A change applies from the next focus session. Saved across restarts.
+    /// </summary>
+    bool OvertimeEnabled { get; set; }
 
     /// <summary>
     /// Starts a new focus session.
@@ -121,9 +128,16 @@ public interface ISessionManager
     void Cancel();
 
     /// <summary>
-    /// Skips the remaining time in the current session.
+    /// Skips the remaining time in the current session. For a focus session this is
+    /// the same as <see cref="MarkDone"/>.
     /// </summary>
     void Skip();
+
+    /// <summary>
+    /// Ends the current focus session now and counts it as completed, recording its
+    /// Time Spent. Does nothing during a break or when no focus session is under way.
+    /// </summary>
+    void MarkDone();
 
     /// <summary>
     /// Records the results of the most recently completed session.
@@ -133,8 +147,8 @@ public interface ISessionManager
     void RecordSessionResults(string? results, int? rating);
 
     /// <summary>
-    /// Restarts the current session from the beginning.
-    /// The session type, duration, and goal are preserved.
+    /// Restarts the current session from the beginning, clearing any Overtime.
+    /// The session type, duration, goal and whether it allows Overtime are preserved.
     /// Only valid when a session is running or paused.
     /// </summary>
     void Restart();

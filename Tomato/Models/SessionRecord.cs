@@ -21,9 +21,15 @@ public sealed class SessionRecord
     public int? Rating { get; set; }
 
     /// <summary>
-    /// Gets the duration of this session.
+    /// Gets the Estimate the session was started with. Null for sessions recorded
+    /// before Estimates were tracked.
     /// </summary>
-    public TimeSpan Duration { get; init; }
+    public TimeSpan? Estimate { get; init; }
+
+    /// <summary>
+    /// Gets how long the session actually ran, not counting pauses.
+    /// </summary>
+    public TimeSpan TimeSpent { get; init; }
 
     /// <summary>
     /// Gets when this session started.

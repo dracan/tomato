@@ -86,4 +86,81 @@ public class SessionTests
     }
 
     #endregion
+
+    #region Overtime and Time Spent
+
+    [Fact]
+    public void SetTimeRemaining_BelowZero_WithoutOvertime_StopsAtZero()
+    {
+        var session = Session.CreateFocus(TimeSpan.FromMinutes(15));
+
+        session.SetTimeRemaining(TimeSpan.FromMinutes(-2));
+
+        session.TimeRemaining.Should().Be(TimeSpan.Zero);
+    }
+
+    [Fact]
+    public void SetTimeRemaining_BelowZero_WithOvertime_KeepsNegativeTime()
+    {
+        var session = Session.CreateFocus(TimeSpan.FromMinutes(15), allowsOvertime: true);
+
+        session.SetTimeRemaining(TimeSpan.FromMinutes(-2));
+
+        session.TimeRemaining.Should().Be(TimeSpan.FromMinutes(-2));
+    }
+
+    [Fact]
+    public void TimeSpent_FinishedEarly_IsEstimateMinusTimeRemaining()
+    {
+        var session = Session.CreateFocus(TimeSpan.FromMinutes(15));
+
+        session.SetTimeRemaining(TimeSpan.FromMinutes(3));
+
+        session.TimeSpent.Should().Be(TimeSpan.FromMinutes(12));
+    }
+
+    [Fact]
+    public void TimeSpent_InOvertime_IncludesTheOvertime()
+    {
+        var session = Session.CreateFocus(TimeSpan.FromMinutes(15), allowsOvertime: true);
+
+        session.SetTimeRemaining(TimeSpan.FromMinutes(-4));
+
+        session.TimeSpent.Should().Be(TimeSpan.FromMinutes(19));
+    }
+
+    [Fact]
+    public void IsInOvertime_RunningPastZeroWithOvertime_IsTrue()
+    {
+        var session = Session.CreateFocus(TimeSpan.FromMinutes(15), allowsOvertime: true);
+        session.Status = SessionStatus.Running;
+
+        session.SetTimeRemaining(TimeSpan.FromSeconds(-1));
+
+        session.IsInOvertime.Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsInOvertime_BeforeEstimateRunsOut_IsFalse()
+    {
+        var session = Session.CreateFocus(TimeSpan.FromMinutes(15), allowsOvertime: true);
+        session.Status = SessionStatus.Running;
+
+        session.SetTimeRemaining(TimeSpan.FromMinutes(1));
+
+        session.IsInOvertime.Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsInOvertime_AfterSessionCompleted_IsFalse()
+    {
+        var session = Session.CreateFocus(TimeSpan.FromMinutes(15), allowsOvertime: true);
+        session.SetTimeRemaining(TimeSpan.FromMinutes(-1));
+
+        session.Status = SessionStatus.Completed;
+
+        session.IsInOvertime.Should().BeFalse();
+    }
+
+    #endregion
 }

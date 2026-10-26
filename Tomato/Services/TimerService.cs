@@ -84,6 +84,8 @@ public sealed class TimerService : ITimerService
     private readonly IIntervalTimer _timer;
     private readonly Stopwatch _stopwatch;
     private TimeSpan _duration;
+    private bool _countPastZero;
+    private bool _reachedZero;
     private bool _disposed;
 
     /// <inheritdoc />
@@ -117,19 +119,14 @@ public sealed class TimerService : ITimerService
     }
 
     /// <inheritdoc />
-    public void Start(TimeSpan duration)
-    {
-        _duration = duration;
-        Remaining = duration;
-        _stopwatch.Restart();
-        _timer.Start();
-        IsRunning = true;
-    }
+    public void Start(TimeSpan duration, bool countPastZero = false) => Resume(duration, countPastZero);
 
     /// <inheritdoc />
-    public void Resume(TimeSpan remaining)
+    public void Resume(TimeSpan remaining, bool countPastZero = false)
     {
         _duration = remaining;
+        _countPastZero = countPastZero;
+        _reachedZero = remaining <= TimeSpan.Zero;
         Remaining = remaining;
         _stopwatch.Restart();
         _timer.Start();
@@ -143,7 +140,7 @@ public sealed class TimerService : ITimerService
         _stopwatch.Stop();
         // Update remaining time based on actual elapsed time
         Remaining = _duration - _stopwatch.Elapsed;
-        if (Remaining < TimeSpan.Zero)
+        if (Remaining < TimeSpan.Zero && !_countPastZero)
         {
             Remaining = TimeSpan.Zero;
         }
@@ -165,13 +162,21 @@ public sealed class TimerService : ITimerService
         var elapsed = _stopwatch.Elapsed;
         Remaining = _duration - elapsed;
 
-        if (Remaining <= TimeSpan.Zero)
+        if (Remaining <= TimeSpan.Zero && !_countPastZero)
         {
             Remaining = TimeSpan.Zero;
             Stop();
             Completed?.Invoke(this, EventArgs.Empty);
+            return;
         }
-        else
+
+        if (Remaining <= TimeSpan.Zero && !_reachedZero)
+        {
+            _reachedZero = true;
+            Completed?.Invoke(this, EventArgs.Empty);
+        }
+
+        if (IsRunning)
         {
             Tick?.Invoke(this, new TimerTickEventArgs(elapsed, Remaining));
         }

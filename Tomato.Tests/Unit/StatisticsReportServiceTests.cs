@@ -280,7 +280,7 @@ public class StatisticsReportServiceTests : IDisposable
         {
             Goal = "Write unit tests",
             Results = "Completed 5 tests",
-            Duration = TimeSpan.FromMinutes(25),
+            TimeSpent = TimeSpan.FromMinutes(25),
             StartedAt = new DateTime(2024, 1, 15, 9, 0, 0),
             CompletedAt = new DateTime(2024, 1, 15, 9, 25, 0)
         });
@@ -296,6 +296,78 @@ public class StatisticsReportServiceTests : IDisposable
         html.Should().Contain("Today's Sessions");
         html.Should().Contain("Write unit tests");
         html.Should().Contain("Completed 5 tests");
+    }
+
+    [Fact]
+    public void GenerateReport_SessionWithEstimate_ShowsHowTimeSpentCompared()
+    {
+        // Arrange
+        var todayStats = DailyStatistics.Create(new DateOnly(2024, 1, 15));
+        todayStats.RecordFocusSession(TimeSpan.FromMinutes(18));
+        todayStats.AddSessionRecord(new SessionRecord
+        {
+            Goal = "Fix bug",
+            Estimate = TimeSpan.FromMinutes(15),
+            TimeSpent = TimeSpan.FromMinutes(18),
+            StartedAt = new DateTime(2024, 1, 15, 9, 0, 0),
+            CompletedAt = new DateTime(2024, 1, 15, 9, 18, 0)
+        });
+        _sessionManager.TodayStatistics.Returns(todayStats);
+
+        // Act
+        _sut.GenerateReport();
+
+        // Assert
+        var html = File.ReadAllText(Path.Combine(_testReportsDirectory, "stats.html"));
+        html.Should().Contain("<div class=\"session-estimate\">Estimated 15m, took 18m (3m over)</div>");
+    }
+
+    [Fact]
+    public void GenerateReport_SessionFromBeforeEstimates_HasNoComparison()
+    {
+        // Arrange
+        var todayStats = DailyStatistics.Create(new DateOnly(2024, 1, 15));
+        todayStats.RecordFocusSession(TimeSpan.FromMinutes(25));
+        todayStats.AddSessionRecord(new SessionRecord
+        {
+            Goal = "Old session",
+            TimeSpent = TimeSpan.FromMinutes(25),
+            StartedAt = new DateTime(2024, 1, 15, 9, 0, 0),
+            CompletedAt = new DateTime(2024, 1, 15, 9, 25, 0)
+        });
+        _sessionManager.TodayStatistics.Returns(todayStats);
+
+        // Act
+        _sut.GenerateReport();
+
+        // Assert
+        var html = File.ReadAllText(Path.Combine(_testReportsDirectory, "stats.html"));
+        html.Should().Contain("Old session");
+        html.Should().NotContain("<div class=\"session-estimate\">");
+    }
+
+    [Fact]
+    public void GenerateReport_HistorySessionWithEstimate_ShowsHowTimeSpentCompared()
+    {
+        // Arrange
+        var yesterday = DailyStatistics.Create(new DateOnly(2024, 1, 14));
+        yesterday.RecordFocusSession(TimeSpan.FromMinutes(8));
+        yesterday.AddSessionRecord(new SessionRecord
+        {
+            Goal = "Quick fix",
+            Estimate = TimeSpan.FromMinutes(10),
+            TimeSpent = TimeSpan.FromMinutes(8),
+            StartedAt = new DateTime(2024, 1, 14, 9, 0, 0),
+            CompletedAt = new DateTime(2024, 1, 14, 9, 8, 0)
+        });
+        _sessionManager.StatisticsHistory.Returns(new List<DailyStatistics> { yesterday });
+
+        // Act
+        _sut.GenerateReport();
+
+        // Assert
+        var html = File.ReadAllText(Path.Combine(_testReportsDirectory, "stats.html"));
+        html.Should().Contain("<div class=\"session-estimate\">Estimated 10m, took 8m (2m under)</div>");
     }
 
     [Fact]
@@ -323,7 +395,7 @@ public class StatisticsReportServiceTests : IDisposable
         todayStats.AddSessionRecord(new SessionRecord
         {
             Goal = "Test",
-            Duration = TimeSpan.FromMinutes(25),
+            TimeSpent = TimeSpan.FromMinutes(25),
             StartedAt = new DateTime(2024, 1, 15, 14, 0, 0),
             CompletedAt = new DateTime(2024, 1, 15, 14, 25, 0)
         });
@@ -362,7 +434,7 @@ public class StatisticsReportServiceTests : IDisposable
         todayStats.AddSessionRecord(new SessionRecord
         {
             Goal = "Test",
-            Duration = TimeSpan.FromMinutes(25),
+            TimeSpent = TimeSpan.FromMinutes(25),
             StartedAt = new DateTime(2024, 1, 15, 9, 0, 0),
             CompletedAt = new DateTime(2024, 1, 15, 9, 25, 0)
         });
@@ -420,7 +492,7 @@ public class StatisticsReportServiceTests : IDisposable
         {
             Goal = null,
             Results = null,
-            Duration = TimeSpan.FromMinutes(25),
+            TimeSpent = TimeSpan.FromMinutes(25),
             StartedAt = new DateTime(2024, 1, 15, 9, 0, 0),
             CompletedAt = new DateTime(2024, 1, 15, 9, 25, 0)
         });
@@ -453,7 +525,7 @@ public class StatisticsReportServiceTests : IDisposable
         {
             Goal = "Yesterday's task",
             Results = "Done",
-            Duration = TimeSpan.FromMinutes(25),
+            TimeSpent = TimeSpan.FromMinutes(25),
             StartedAt = new DateTime(2024, 1, 14, 10, 0, 0),
             CompletedAt = new DateTime(2024, 1, 14, 10, 25, 0)
         });
@@ -487,7 +559,7 @@ public class StatisticsReportServiceTests : IDisposable
         {
             Goal = "<script>alert('xss')</script>",
             Results = "Fix bug & test",
-            Duration = TimeSpan.FromMinutes(25),
+            TimeSpent = TimeSpan.FromMinutes(25),
             StartedAt = new DateTime(2024, 1, 15, 9, 0, 0),
             CompletedAt = new DateTime(2024, 1, 15, 9, 25, 0)
         });
