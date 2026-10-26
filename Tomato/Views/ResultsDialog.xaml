@@ -52,14 +52,20 @@
                        Margin="0,0,0,8"
                        Visibility="{Binding IsTodosOnlyMode, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-            <!-- Goal display (if set, feedback mode only) -->
-            <TextBlock Grid.Row="1"
-                       Text="{Binding Goal, StringFormat='Goal: {0}'}"
-                       Foreground="{StaticResource TextSecondaryBrush}"
-                       FontSize="12"
-                       TextWrapping="Wrap"
-                       Margin="0,0,0,12"
-                       Visibility="{Binding Goal, Converter={StaticResource NullToCollapsedConverter}}"/>
+            <!-- Goal and how Time Spent compared with the Estimate (feedback mode only) -->
+            <StackPanel Grid.Row="1" Margin="0,0,0,12">
+                <TextBlock Text="{Binding Goal, StringFormat='Goal: {0}'}"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Visibility="{Binding Goal, Converter={StaticResource NullToCollapsedConverter}}"/>
+                <TextBlock Text="{Binding EstimateSummary}"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Margin="0,4,0,0"
+                           Visibility="{Binding EstimateSummary, Converter={StaticResource NullToCollapsedConverter}}"/>
+            </StackPanel>
 
             <!-- Star Rating (feedback mode only) -->
             <StackPanel Grid.Row="2"

@@ -6,8 +6,8 @@ using Tomato.Models;
 namespace Tomato.Converters;
 
 /// <summary>
-/// Converts session state (type, running, paused) to a background color.
-/// Shows idle color when not running, session type color when active.
+/// Converts session state (type, running, paused, and optionally in Overtime) to a background color.
+/// Shows idle color when not running, session type color when active, and amber in Overtime.
 /// </summary>
 public class SessionStateToBrushConverter : IMultiValueConverter
 {
@@ -27,6 +27,11 @@ public class SessionStateToBrushConverter : IMultiValueConverter
     public SolidColorBrush LongBreakColor { get; set; } = new(Color.FromRgb(0, 123, 255));
 
     /// <summary>
+    /// Color for a focus session in Overtime (amber).
+    /// </summary>
+    public SolidColorBrush OvertimeColor { get; set; } = new(Color.FromRgb(230, 126, 34));
+
+    /// <summary>
     /// Color for idle state (dark gray).
     /// </summary>
     public SolidColorBrush IdleColor { get; set; } = new(Color.FromRgb(74, 74, 74));
@@ -39,10 +44,14 @@ public class SessionStateToBrushConverter : IMultiValueConverter
         var sessionType = values[0] as SessionType? ?? SessionType.Focus;
         var isRunning = values[1] as bool? ?? false;
         var isPaused = values[2] as bool? ?? false;
+        var isInOvertime = values.Length > 3 && values[3] is true;
 
         // If not running and not paused, show idle color
         if (!isRunning && !isPaused)
             return IdleColor;
+
+        if (isInOvertime)
+            return OvertimeColor;
 
         // Show session type color when active (running or paused)
         return sessionType switch

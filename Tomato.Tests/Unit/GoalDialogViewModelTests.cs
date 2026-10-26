@@ -68,6 +68,63 @@ public class GoalDialogViewModelTests
     }
 
     [Fact]
+    public void Estimate_DefaultsTo25Minutes()
+    {
+        var sut = new GoalDialogViewModel();
+
+        sut.Estimate.Should().Be("25");
+        sut.EstimateMinutes.Should().Be(25);
+    }
+
+    [Fact]
+    public void Estimate_StartsWithTheGivenMinutes()
+    {
+        var sut = new GoalDialogViewModel(estimateMinutes: 15);
+
+        sut.Estimate.Should().Be("15");
+        sut.EstimateMinutes.Should().Be(15);
+    }
+
+    [Theory]
+    [InlineData("1", 1)]
+    [InlineData("45", 45)]
+    [InlineData(" 120 ", 120)]
+    public void Estimate_WholeMinutesFrom1To120_CanBeConfirmed(string text, int minutes)
+    {
+        var sut = new GoalDialogViewModel { Estimate = text };
+
+        sut.ConfirmCommand.CanExecute(null).Should().BeTrue();
+        sut.EstimateMinutes.Should().Be(minutes);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("0")]
+    [InlineData("121")]
+    [InlineData("-5")]
+    [InlineData("12.5")]
+    [InlineData("abc")]
+    public void Estimate_OutsideTheAllowedRange_CannotBeConfirmed(string text)
+    {
+        var sut = new GoalDialogViewModel { Estimate = text };
+
+        sut.ConfirmCommand.CanExecute(null).Should().BeFalse();
+        sut.IsEstimateValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Estimate_WhenItBecomesValid_RaisesConfirmCanExecuteChanged()
+    {
+        var sut = new GoalDialogViewModel { Estimate = "" };
+        var raised = false;
+        sut.ConfirmCommand.CanExecuteChanged += (_, _) => raised = true;
+
+        sut.Estimate = "10";
+
+        raised.Should().BeTrue();
+    }
+
+    [Fact]
     public void Goal_RaisesPropertyChanged()
     {
         // Arrange

@@ -20,7 +20,7 @@ public class TimerViewModelTests
         _sessionManager.TodayStatistics.Returns(DailyStatistics.Create(DateOnly.FromDateTime(DateTime.Now)));
 
         _dialogService = Substitute.For<IDialogService>();
-        _dialogService.ShowGoalDialogAsync().Returns(new GoalDialogResult(true, null));
+        _dialogService.ShowGoalDialogAsync(Arg.Any<int>(), Arg.Any<bool>()).Returns(new GoalDialogResult(true, null));
 
         _statisticsReportService = Substitute.For<IStatisticsReportService>();
 
@@ -81,26 +81,26 @@ public class TimerViewModelTests
     {
         // Arrange
         var goal = "Complete feature";
-        _dialogService.ShowGoalDialogAsync().Returns(new GoalDialogResult(true, goal));
+        _dialogService.ShowGoalDialogAsync(Arg.Any<int>(), Arg.Any<bool>()).Returns(new GoalDialogResult(true, goal));
 
         // Act
         await _sut.StartFocusCommand.ExecuteAsync(null);
 
         // Assert
-        _sessionManager.Received(1).StartFocus(goal);
+        _sessionManager.Received(1).StartFocus(TimeSpan.FromMinutes(25), goal);
     }
 
     [Fact]
     public async Task StartFocusCommand_WhenCancelled_DoesNotStartSession()
     {
         // Arrange
-        _dialogService.ShowGoalDialogAsync().Returns(new GoalDialogResult(false, null));
+        _dialogService.ShowGoalDialogAsync(Arg.Any<int>(), Arg.Any<bool>()).Returns(new GoalDialogResult(false, null));
 
         // Act
         await _sut.StartFocusCommand.ExecuteAsync(null);
 
         // Assert
-        _sessionManager.DidNotReceive().StartFocus(Arg.Any<string?>());
+        _sessionManager.DidNotReceive().StartFocus(Arg.Any<TimeSpan>(), Arg.Any<string?>());
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public class TimerViewModelTests
     {
         // Arrange
         var goal = "Complete feature";
-        _dialogService.ShowGoalDialogAsync().Returns(new GoalDialogResult(true, goal));
+        _dialogService.ShowGoalDialogAsync(Arg.Any<int>(), Arg.Any<bool>()).Returns(new GoalDialogResult(true, goal));
 
         // Act
         await _sut.StartFocusCommand.ExecuteAsync(null);
@@ -121,7 +121,7 @@ public class TimerViewModelTests
     public async Task StartFocusCommand_WhenCancelled_DoesNotSetCurrentGoal()
     {
         // Arrange
-        _dialogService.ShowGoalDialogAsync().Returns(new GoalDialogResult(false, null));
+        _dialogService.ShowGoalDialogAsync(Arg.Any<int>(), Arg.Any<bool>()).Returns(new GoalDialogResult(false, null));
         _sut.CurrentGoal.Should().BeNull(); // Initial state
 
         // Act
@@ -136,7 +136,7 @@ public class TimerViewModelTests
     {
         // Arrange
         var goal = "Quick task";
-        _dialogService.ShowGoalDialogAsync().Returns(new GoalDialogResult(true, goal));
+        _dialogService.ShowGoalDialogAsync(15, false).Returns(new GoalDialogResult(true, goal, 15));
 
         // Act
         await _sut.StartFocusWithDurationCommand.ExecuteAsync("15");
@@ -149,7 +149,7 @@ public class TimerViewModelTests
     public async Task StartFocusWithDurationCommand_WhenCancelled_DoesNotStartSession()
     {
         // Arrange
-        _dialogService.ShowGoalDialogAsync().Returns(new GoalDialogResult(false, null));
+        _dialogService.ShowGoalDialogAsync(Arg.Any<int>(), Arg.Any<bool>()).Returns(new GoalDialogResult(false, null));
 
         // Act
         await _sut.StartFocusWithDurationCommand.ExecuteAsync("15");
@@ -505,7 +505,7 @@ public class TimerViewModelTests
             var session = Session.CreateFocus("Test goal");
             session.Status = SessionStatus.Completed;
             _sessionManager.CurrentSession.Returns(session);
-            _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>())
+            _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>(), Arg.Any<string?>())
                 .Returns(new ResultsDialogResult(false, null, null));
 
             // Act
@@ -513,9 +513,9 @@ public class TimerViewModelTests
                 new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Completed));
 
             // Assert - not shown inside the event, shown once queued work runs
-            _dialogService.DidNotReceive().ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>());
+            _dialogService.DidNotReceive().ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>(), Arg.Any<string?>());
             context.RunAll();
-            _dialogService.Received(1).ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>());
+            _dialogService.Received(1).ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>(), Arg.Any<string?>());
         }
         finally
         {
@@ -530,7 +530,7 @@ public class TimerViewModelTests
         var completed = Session.CreateFocus("Old goal");
         completed.Status = SessionStatus.Completed;
         _sessionManager.CurrentSession.Returns(completed);
-        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>())
+        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>(), Arg.Any<string?>())
             .Returns(_ =>
             {
                 // The user starts a new focus session (e.g. from the tray) while the dialog is open
@@ -569,14 +569,14 @@ public class TimerViewModelTests
         var session = Session.CreateFocus("Test goal");
         session.Status = SessionStatus.Completed;
         _sessionManager.CurrentSession.Returns(session);
-        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>()).Returns(new ResultsDialogResult(true, "Some results", null));
+        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>(), Arg.Any<string?>()).Returns(new ResultsDialogResult(true, "Some results", null));
 
         // Act
         _sessionManager.SessionStateChanged += Raise.EventWith(
             new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Completed));
 
         // Assert - dialog should be shown
-        _dialogService.Received(1).ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>());
+        _dialogService.Received(1).ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>(), Arg.Any<string?>());
     }
 
     [Fact]
@@ -592,7 +592,7 @@ public class TimerViewModelTests
             new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Completed));
 
         // Assert - dialog should not be shown for breaks
-        _dialogService.DidNotReceive().ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>());
+        _dialogService.DidNotReceive().ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>(), Arg.Any<string?>());
     }
 
     [Fact]
@@ -600,7 +600,7 @@ public class TimerViewModelTests
     {
         // Arrange
         _sut.CurrentGoal.Should().BeNull();
-        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>()).Returns(new ResultsDialogResult(true, "Completed task", null));
+        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>(), Arg.Any<string?>()).Returns(new ResultsDialogResult(true, "Completed task", null));
 
         // Simulate focus session completion
         var session = Session.CreateFocus();
@@ -620,7 +620,7 @@ public class TimerViewModelTests
     public async Task WhenResultsDialogCancelled_DoesNotRecordSessionResults()
     {
         // Arrange
-        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>()).Returns(new ResultsDialogResult(false, null, null));
+        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>(), Arg.Any<string?>()).Returns(new ResultsDialogResult(false, null, null));
 
         // Simulate focus session completion
         var session = Session.CreateFocus();
@@ -640,7 +640,7 @@ public class TimerViewModelTests
     public async Task WhenResultsDialogSubmittedEmpty_DoesNotRecordSessionResults()
     {
         // Arrange
-        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>()).Returns(new ResultsDialogResult(true, "", null));
+        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>(), Arg.Any<string?>()).Returns(new ResultsDialogResult(true, "", null));
 
         // Simulate focus session completion
         var session = Session.CreateFocus();
@@ -660,7 +660,7 @@ public class TimerViewModelTests
     public async Task WhenResultsDialogConfirmedWithRatingOnly_RecordsSessionResults()
     {
         // Arrange
-        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>()).Returns(new ResultsDialogResult(true, "", 4));
+        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>(), Arg.Any<string?>()).Returns(new ResultsDialogResult(true, "", 4));
 
         // Simulate focus session completion
         var session = Session.CreateFocus();
@@ -730,6 +730,214 @@ public class TimerViewModelTests
         // Assert - initial state
         _sut.CanRestart.Should().BeFalse();
         _sut.RestartCommand.CanExecute(null).Should().BeFalse();
+    }
+
+    #endregion
+
+    #region Estimates, Overtime and Done
+
+    [Fact]
+    public async Task StartFocusCommand_OpensGoalDialogWith25Minutes()
+    {
+        // Act
+        await _sut.StartFocusCommand.ExecuteAsync(null);
+
+        // Assert
+        await _dialogService.Received(1).ShowGoalDialogAsync(25, false);
+    }
+
+    [Fact]
+    public async Task StartFocusCommand_UsesTheEstimateEnteredInTheDialog()
+    {
+        // Arrange
+        _dialogService.ShowGoalDialogAsync(Arg.Any<int>(), Arg.Any<bool>())
+            .Returns(new GoalDialogResult(true, "Fix bug", 40));
+
+        // Act
+        await _sut.StartFocusCommand.ExecuteAsync(null);
+
+        // Assert
+        _sessionManager.Received(1).StartFocus(TimeSpan.FromMinutes(40), "Fix bug");
+    }
+
+    [Fact]
+    public async Task StartFocusWithDurationCommand_OpensGoalDialogWithThePresetFilledIn()
+    {
+        // Act
+        await _sut.StartFocusWithDurationCommand.ExecuteAsync("10");
+
+        // Assert
+        await _dialogService.Received(1).ShowGoalDialogAsync(10, false);
+    }
+
+    [Fact]
+    public async Task StartFocusWithDurationCommand_PresetChangedInDialog_UsesTheChangedEstimate()
+    {
+        // Arrange
+        _dialogService.ShowGoalDialogAsync(Arg.Any<int>(), Arg.Any<bool>())
+            .Returns(new GoalDialogResult(true, "Fix bug", 12));
+
+        // Act
+        await _sut.StartFocusWithDurationCommand.ExecuteAsync("10");
+
+        // Assert
+        _sessionManager.Received(1).StartFocus(TimeSpan.FromMinutes(12), "Fix bug");
+    }
+
+    [Fact]
+    public async Task StartFocusCustomCommand_OpensGoalDialogWithEstimateFocused()
+    {
+        // Arrange
+        _dialogService.ShowGoalDialogAsync(Arg.Any<int>(), Arg.Any<bool>())
+            .Returns(new GoalDialogResult(true, "Fix bug", 7));
+
+        // Act
+        await _sut.StartFocusCustomCommand.ExecuteAsync(null);
+
+        // Assert
+        await _dialogService.Received(1).ShowGoalDialogAsync(25, true);
+        _sessionManager.Received(1).StartFocus(TimeSpan.FromMinutes(7), "Fix bug");
+    }
+
+    [Fact]
+    public void MarkDoneCommand_DuringFocusSession_MarksItDone()
+    {
+        // Arrange
+        RaiseStateChanged(Session.CreateFocus(), SessionStatus.Running);
+
+        // Act
+        _sut.MarkDoneCommand.Execute(null);
+
+        // Assert
+        _sessionManager.Received(1).MarkDone();
+    }
+
+    [Fact]
+    public void MarkDoneCommand_DuringBreak_CannotExecute()
+    {
+        // Act
+        RaiseStateChanged(Session.CreateShortBreak(), SessionStatus.Running);
+
+        // Assert
+        _sut.MarkDoneCommand.CanExecute(null).Should().BeFalse();
+    }
+
+    [Fact]
+    public void MarkDoneCommand_WhenIdle_CannotExecute()
+    {
+        _sut.MarkDoneCommand.CanExecute(null).Should().BeFalse();
+    }
+
+    [Fact]
+    public void IsOvertimeEnabled_StartsFromTheSessionManager()
+    {
+        // Arrange
+        _sessionManager.OvertimeEnabled.Returns(true);
+
+        // Act
+        var sut = new TimerViewModel(_sessionManager, _dialogService, _statisticsReportService);
+
+        // Assert
+        sut.IsOvertimeEnabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsOvertimeEnabled_WhenChanged_UpdatesTheSessionManager()
+    {
+        // Act
+        _sut.IsOvertimeEnabled = true;
+
+        // Assert
+        _sessionManager.Received(1).OvertimeEnabled = true;
+    }
+
+    [Fact]
+    public void IsInOvertime_WhenSessionGoesIntoOvertime_IsTrue()
+    {
+        // Arrange
+        var session = Session.CreateFocus(TimeSpan.FromMinutes(15), allowsOvertime: true);
+        session.SetTimeRemaining(TimeSpan.Zero);
+
+        // Act
+        RaiseStateChanged(session, SessionStatus.Running);
+
+        // Assert
+        _sut.IsInOvertime.Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsInOvertime_TickBelowZero_ShowsNegativeTimeRemaining()
+    {
+        // Arrange
+        var session = Session.CreateFocus(TimeSpan.FromMinutes(15), allowsOvertime: true);
+        RaiseStateChanged(session, SessionStatus.Running);
+        session.SetTimeRemaining(TimeSpan.FromMinutes(-2));
+        _sessionManager.CurrentSession.Returns(session);
+
+        // Act
+        _sessionManager.TimerTick += Raise.EventWith(
+            new TimerTickEventArgs(TimeSpan.FromMinutes(17), TimeSpan.FromMinutes(-2)));
+
+        // Assert
+        _sut.IsInOvertime.Should().BeTrue();
+        _sut.TimeRemaining.Should().Be(TimeSpan.FromMinutes(-2));
+    }
+
+    [Fact]
+    public void IsInOvertime_AfterSessionCompletes_IsFalse()
+    {
+        // Arrange
+        var session = Session.CreateFocus(TimeSpan.FromMinutes(15), allowsOvertime: true);
+        session.SetTimeRemaining(TimeSpan.FromMinutes(-2));
+        RaiseStateChanged(session, SessionStatus.Running);
+
+        // Act
+        RaiseStateChanged(session, SessionStatus.Completed);
+
+        // Assert
+        _sut.IsInOvertime.Should().BeFalse();
+    }
+
+    [Fact]
+    public void WhenFocusSessionMarkedDoneEarly_ShowsZeroTimeRemaining()
+    {
+        // Arrange
+        var session = Session.CreateFocus(TimeSpan.FromMinutes(15));
+        session.SetTimeRemaining(TimeSpan.FromMinutes(4));
+
+        // Act
+        RaiseStateChanged(session, SessionStatus.Completed);
+
+        // Assert
+        _sut.TimeRemaining.Should().Be(TimeSpan.Zero);
+    }
+
+    [Fact]
+    public async Task WhenFocusSessionCompletes_ResultsDialogShowsHowTimeSpentCompared()
+    {
+        // Arrange
+        var session = Session.CreateFocus(TimeSpan.FromMinutes(15), "Fix bug", allowsOvertime: true);
+        session.SetTimeRemaining(TimeSpan.FromMinutes(-3));
+        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>(), Arg.Any<string?>())
+            .Returns(new ResultsDialogResult(false, null, null));
+
+        // Act
+        RaiseStateChanged(session, SessionStatus.Completed);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
+
+        // Assert
+        await _dialogService.Received(1).ShowResultsDialogAsync(
+            Arg.Any<string?>(),
+            Arg.Any<IReadOnlyList<TodoItem>?>(),
+            "Estimated 15m, took 18m (3m over)");
+    }
+
+    private void RaiseStateChanged(Session session, SessionStatus newStatus)
+    {
+        session.Status = newStatus;
+        _sessionManager.CurrentSession.Returns(session);
+        _sessionManager.SessionStateChanged += Raise.EventWith(
+            new SessionStateChangedEventArgs(session, SessionStatus.Running, newStatus));
     }
 
     #endregion

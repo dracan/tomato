@@ -18,9 +18,9 @@ public sealed class DialogService : IDialogService
     }
 
     /// <inheritdoc />
-    public Task<GoalDialogResult> ShowGoalDialogAsync()
+    public Task<GoalDialogResult> ShowGoalDialogAsync(int estimateMinutes = 25, bool focusEstimate = false)
     {
-        var viewModel = new GoalDialogViewModel();
+        var viewModel = new GoalDialogViewModel(estimateMinutes, focusEstimate);
         var dialog = new GoalDialog
         {
             DataContext = viewModel,
@@ -32,13 +32,13 @@ public sealed class DialogService : IDialogService
         var confirmed = viewModel.DialogResult == true;
         var goal = confirmed ? viewModel.Goal : null;
 
-        return Task.FromResult(new GoalDialogResult(confirmed, goal));
+        return Task.FromResult(new GoalDialogResult(confirmed, goal, viewModel.EstimateMinutes));
     }
 
     /// <inheritdoc />
-    public Task<ResultsDialogResult> ShowResultsDialogAsync(string? goal, IReadOnlyList<TodoItem>? capturedTodos = null)
+    public Task<ResultsDialogResult> ShowResultsDialogAsync(string? goal, IReadOnlyList<TodoItem>? capturedTodos = null, string? estimateSummary = null)
     {
-        var viewModel = new ResultsDialogViewModel { Goal = goal, CapturedTodos = capturedTodos };
+        var viewModel = new ResultsDialogViewModel { Goal = goal, CapturedTodos = capturedTodos, EstimateSummary = estimateSummary };
         var dialog = new ResultsDialog
         {
             DataContext = viewModel,

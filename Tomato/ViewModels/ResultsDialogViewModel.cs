@@ -21,6 +21,11 @@ public partial class ResultsDialogViewModel : ObservableObject
     private int? _rating;
 
     /// <summary>
+    /// Gets or sets how the session's Time Spent compared with its Estimate, if known.
+    /// </summary>
+    public string? EstimateSummary { get; set; }
+
+    /// <summary>
     /// Gets or sets the captured todos from the session.
     /// </summary>
     public IReadOnlyList<TodoItem>? CapturedTodos { get; set; }

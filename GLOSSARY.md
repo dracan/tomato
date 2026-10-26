@@ -7,11 +7,11 @@ A desktop Pomodoro timer: you work in timed focus sessions separated by breaks, 
 ### Sessions
 
 **Focus Session**:
-A timed stretch of work on a single Goal. It lasts 25 minutes unless you give it an Estimate.
+A timed stretch of work on a single Goal, lasting its Estimate.
 _Avoid_: Pomodoro (for a single session), timebox, task session
 
 **Estimate**:
-The length you choose for a Focus Session: how long you expect its Goal to take, in whole minutes.
+The length you choose for a Focus Session: how long you expect its Goal to take, in whole minutes. 25 unless you choose otherwise.
 _Avoid_: Custom duration, target, timebox length
 
 **Overtime**:

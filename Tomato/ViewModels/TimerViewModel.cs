@@ -48,6 +48,12 @@ public partial class TimerViewModel : ObservableObject
     [ObservableProperty]
     private string _newTodoText = string.Empty;
 
+    [ObservableProperty]
+    private bool _isInOvertime;
+
+    [ObservableProperty]
+    private bool _isOvertimeEnabled;
+
     /// <summary>
     /// Collection of todos captured during the current focus session.
     /// </summary>
@@ -74,6 +80,11 @@ public partial class TimerViewModel : ObservableObject
     public bool CanShowTodoInput => (IsRunning || IsPaused) && CurrentSessionType == SessionType.Focus;
 
     /// <summary>
+    /// Gets whether the current focus session can be marked done.
+    /// </summary>
+    public bool CanMarkDone => (IsRunning || IsPaused) && CurrentSessionType == SessionType.Focus;
+
+    /// <summary>
     /// Returns the goal text for tooltip display, or null if no tooltip should be shown.
     /// Tooltip is only shown when a session is active (running or paused) and has a non-empty goal.
     /// </summary>
@@ -88,6 +99,8 @@ public partial class TimerViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(GoalTooltip));
         OnPropertyChanged(nameof(CanShowTodoInput));
+        OnPropertyChanged(nameof(CanMarkDone));
+        MarkDoneCommand.NotifyCanExecuteChanged();
         RestartCommand.NotifyCanExecuteChanged();
         ShowTodoInputCommand.NotifyCanExecuteChanged();
         AddTodoCommand.NotifyCanExecuteChanged();
@@ -97,6 +110,8 @@ public partial class TimerViewModel : ObservableObject
     {
         OnPropertyChanged(nameof(GoalTooltip));
         OnPropertyChanged(nameof(CanShowTodoInput));
+        OnPropertyChanged(nameof(CanMarkDone));
+        MarkDoneCommand.NotifyCanExecuteChanged();
         RestartCommand.NotifyCanExecuteChanged();
         ShowTodoInputCommand.NotifyCanExecuteChanged();
         AddTodoCommand.NotifyCanExecuteChanged();
@@ -104,9 +119,13 @@ public partial class TimerViewModel : ObservableObject
 
     partial void OnCurrentGoalChanged(string? value) => OnPropertyChanged(nameof(GoalTooltip));
 
+    partial void OnIsOvertimeEnabledChanged(bool value) => _sessionManager.OvertimeEnabled = value;
+
     partial void OnCurrentSessionTypeChanged(SessionType value)
     {
         OnPropertyChanged(nameof(CanShowTodoInput));
+        OnPropertyChanged(nameof(CanMarkDone));
+        MarkDoneCommand.NotifyCanExecuteChanged();
         ShowTodoInputCommand.NotifyCanExecuteChanged();
         AddTodoCommand.NotifyCanExecuteChanged();
     }
@@ -122,20 +141,12 @@ public partial class TimerViewModel : ObservableObject
         _sessionManager.SessionStateChanged += OnSessionStateChanged;
 
         // Initialize from current state
+        _isOvertimeEnabled = _sessionManager.OvertimeEnabled;
         UpdateFromSessionManager();
     }
 
     [RelayCommand]
-    private async Task StartFocusAsync()
-    {
-        var result = await _dialogService.ShowGoalDialogAsync();
-        if (result.Confirmed)
-        {
-            await FinishPendingFocusWorkAsync();
-            CurrentGoal = result.Goal;
-            _sessionManager.StartFocus(result.Goal);
-        }
-    }
+    private Task StartFocusAsync() => StartFocusFromGoalDialogAsync(25, focusEstimate: false);
 
     [RelayCommand]
     private async Task StartFocusWithDurationAsync(string minutesString)
@@ -145,12 +156,23 @@ public partial class TimerViewModel : ObservableObject
             return;
         }
 
-        var result = await _dialogService.ShowGoalDialogAsync();
+        await StartFocusFromGoalDialogAsync(minutes, focusEstimate: false);
+    }
+
+    [RelayCommand]
+    private Task StartFocusCustomAsync() => StartFocusFromGoalDialogAsync(25, focusEstimate: true);
+
+    /// <summary>
+    /// Asks for the goal and Estimate, with the Estimate filled in, then starts the focus session.
+    /// </summary>
+    private async Task StartFocusFromGoalDialogAsync(int estimateMinutes, bool focusEstimate)
+    {
+        var result = await _dialogService.ShowGoalDialogAsync(estimateMinutes, focusEstimate);
         if (result.Confirmed)
         {
             await FinishPendingFocusWorkAsync();
             CurrentGoal = result.Goal;
-            _sessionManager.StartFocus(TimeSpan.FromMinutes(minutes), result.Goal);
+            _sessionManager.StartFocus(TimeSpan.FromMinutes(result.EstimateMinutes), result.Goal);
         }
     }
 
@@ -222,6 +244,12 @@ public partial class TimerViewModel : ObservableObject
         _sessionManager.Skip();
     }
 
+    [RelayCommand(CanExecute = nameof(CanMarkDone))]
+    private void MarkDone()
+    {
+        _sessionManager.MarkDone();
+    }
+
     [RelayCommand(CanExecute = nameof(CanRestart))]
     private void Restart()
     {
@@ -276,6 +304,7 @@ public partial class TimerViewModel : ObservableObject
     private void OnTimerTick(object? sender, TimerTickEventArgs e)
     {
         TimeRemaining = e.Remaining;
+        IsInOvertime = _sessionManager.CurrentSession?.IsInOvertime == true;
     }
 
     private void OnSessionStateChanged(object? sender, SessionStateChangedEventArgs e)
@@ -286,29 +315,30 @@ public partial class TimerViewModel : ObservableObject
         // Show results dialog when a focus session completes
         if (e.NewStatus == SessionStatus.Completed && e.Session.Type == SessionType.Focus)
         {
-            ShowResultsDialogAfterCurrentEvent();
+            var estimateSummary = EstimateSummary.Describe(e.Session.Duration, e.Session.TimeSpent);
+            ShowResultsDialogAfterCurrentEvent(estimateSummary);
         }
     }
 
-    private void ShowResultsDialogAfterCurrentEvent()
+    private void ShowResultsDialogAfterCurrentEvent(string estimateSummary)
     {
         // The dialog is modal, so show it once this event has finished dispatching;
         // otherwise later subscribers (e.g. the tray icon) wait until it is closed.
         var context = SynchronizationContext.Current;
         if (context != null)
         {
-            context.Post(_ => _ = ShowResultsDialogAsync(), null);
+            context.Post(_ => _ = ShowResultsDialogAsync(estimateSummary), null);
         }
         else
         {
-            _ = ShowResultsDialogAsync();
+            _ = ShowResultsDialogAsync(estimateSummary);
         }
     }
 
-    private async Task ShowResultsDialogAsync()
+    private async Task ShowResultsDialogAsync(string estimateSummary)
     {
         var todos = CapturedTodos.Count > 0 ? CapturedTodos.ToList().AsReadOnly() : null;
-        var result = await _dialogService.ShowResultsDialogAsync(CurrentGoal, todos);
+        var result = await _dialogService.ShowResultsDialogAsync(CurrentGoal, todos, estimateSummary);
         if (result.Confirmed && (!string.IsNullOrWhiteSpace(result.Results) || result.Rating.HasValue))
         {
             _sessionManager.RecordSessionResults(result.Results, result.Rating);
@@ -334,11 +364,16 @@ public partial class TimerViewModel : ObservableObject
     {
         CurrentSessionType = session.Type;
         SessionLabel = GetSessionLabel(session.Type);
-        TimeRemaining = session.TimeRemaining;
+
+        // A session marked done early still has time left; once finished, show zero
+        TimeRemaining = status == SessionStatus.Completed ? TimeSpan.Zero : session.TimeRemaining;
 
         IsRunning = status == SessionStatus.Running;
         IsPaused = status == SessionStatus.Paused;
         IsSessionComplete = status == SessionStatus.Completed;
+        IsInOvertime = session.AllowsOvertime &&
+            session.TimeRemaining <= TimeSpan.Zero &&
+            status is SessionStatus.Running or SessionStatus.Paused;
 
         if (!CanShowTodoInput)
         {
@@ -390,6 +425,7 @@ public partial class TimerViewModel : ObservableObject
         IsRunning = false;
         IsPaused = false;
         IsSessionComplete = false;
+        IsInOvertime = false;
     }
 
     private static string GetSessionLabel(SessionType type) => type switch

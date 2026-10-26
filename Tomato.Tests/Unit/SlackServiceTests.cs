@@ -480,6 +480,96 @@ public class SlackServiceTests : IDisposable
     }
 
     [Fact]
+    public void OnFocusSessionEnteringOvertime_SetsFocusStatusFor10Minutes()
+    {
+        // Arrange
+        CreateConfiguredSut();
+        var session = CreateSessionInOvertime(TimeSpan.Zero);
+
+        // Act
+        RaiseOvertimeStarted(session);
+
+        // Assert
+        Thread.Sleep(100);
+        _httpHandler.Bodies.Should().ContainSingle(b => b == "num_minutes=10");
+    }
+
+    [Fact]
+    public void DuringOvertime_ExtendsFocusStatusBeforeItRunsOut()
+    {
+        // Arrange
+        CreateConfiguredSut();
+        var session = CreateSessionInOvertime(TimeSpan.Zero);
+        RaiseOvertimeStarted(session);
+
+        // Act - 9 minutes into Overtime
+        session.SetTimeRemaining(TimeSpan.FromMinutes(-9));
+        _sessionManager.TimerTick += Raise.EventWith(
+            _sessionManager,
+            new TimerTickEventArgs(TimeSpan.FromMinutes(24), TimeSpan.FromMinutes(-9)));
+
+        // Assert
+        Thread.Sleep(100);
+        _httpHandler.Bodies.Count(b => b == "num_minutes=10").Should().Be(2);
+    }
+
+    [Fact]
+    public void DuringOvertime_DoesNotExtendFocusStatusEarly()
+    {
+        // Arrange
+        CreateConfiguredSut();
+        var session = CreateSessionInOvertime(TimeSpan.Zero);
+        RaiseOvertimeStarted(session);
+
+        // Act - 5 minutes into Overtime
+        session.SetTimeRemaining(TimeSpan.FromMinutes(-5));
+        _sessionManager.TimerTick += Raise.EventWith(
+            _sessionManager,
+            new TimerTickEventArgs(TimeSpan.FromMinutes(20), TimeSpan.FromMinutes(-5)));
+
+        // Assert
+        Thread.Sleep(100);
+        _httpHandler.Bodies.Count(b => b == "num_minutes=10").Should().Be(1);
+    }
+
+    [Fact]
+    public void DuringOvertime_ResumedAfterPause_SetsFocusStatusFor10Minutes()
+    {
+        // Arrange
+        CreateConfiguredSut();
+        var session = CreateSessionInOvertime(TimeSpan.FromMinutes(-20));
+
+        // Act
+        _sessionManager.SessionStateChanged += Raise.EventWith(
+            _sessionManager,
+            new SessionStateChangedEventArgs(session, SessionStatus.Paused, SessionStatus.Running));
+
+        // Assert
+        Thread.Sleep(100);
+        _httpHandler.Bodies.Should().ContainSingle(b => b == "num_minutes=10");
+    }
+
+    private void CreateConfiguredSut()
+    {
+        _configService.LoadToken().Returns("xoxp-test-token");
+        _sut = new SlackService(_configService, _sessionManager, _httpClient);
+    }
+
+    private Session CreateSessionInOvertime(TimeSpan timeRemaining)
+    {
+        var session = Session.CreateFocus(TimeSpan.FromMinutes(15), allowsOvertime: true);
+        session.Status = SessionStatus.Running;
+        session.SetTimeRemaining(timeRemaining);
+        _sessionManager.CurrentSession.Returns(session);
+        return session;
+    }
+
+    private void RaiseOvertimeStarted(Session session) =>
+        _sessionManager.SessionStateChanged += Raise.EventWith(
+            _sessionManager,
+            new SessionStateChangedEventArgs(session, SessionStatus.Running, SessionStatus.Running));
+
+    [Fact]
     public void Dispose_WaitsForPendingStatusClear()
     {
         // Arrange - a slow network

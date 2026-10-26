@@ -9,7 +9,7 @@
         Title="Tomato"
         Icon="/Resources/tomato.ico"
         Height="80"
-        Width="150"
+        Width="190"
         Topmost="True"
         WindowStyle="None"
         AllowsTransparency="True"

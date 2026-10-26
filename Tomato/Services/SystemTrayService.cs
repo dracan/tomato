@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Forms;
+using Tomato.Converters;
 using Tomato.Models;
 using Tomato.ViewModels;
 using DrawingColor = System.Drawing.Color;
@@ -20,6 +21,7 @@ public sealed class SystemTrayService : ISystemTrayService
     private static readonly DrawingColor FocusColor = DrawingColor.FromArgb(220, 53, 69);      // #DC3545
     private static readonly DrawingColor ShortBreakColor = DrawingColor.FromArgb(40, 167, 69); // #28A745
     private static readonly DrawingColor LongBreakColor = DrawingColor.FromArgb(0, 123, 255);  // #007BFF
+    private static readonly DrawingColor OvertimeColor = DrawingColor.FromArgb(230, 126, 34);  // #E67E22
     private static readonly DrawingColor IdleColor = DrawingColor.FromArgb(74, 74, 74);        // #4A4A4A
 
     private readonly ISessionManager _sessionManager;
@@ -32,6 +34,7 @@ public sealed class SystemTrayService : ISystemTrayService
     private DrawingIcon? _focusIcon;
     private DrawingIcon? _shortBreakIcon;
     private DrawingIcon? _longBreakIcon;
+    private DrawingIcon? _overtimeIcon;
     private DrawingIcon? _idleIcon;
 
     private bool _disposed;
@@ -95,6 +98,7 @@ public sealed class SystemTrayService : ISystemTrayService
             _focusIcon = AddStatusIndicator(originalIcon, FocusColor);
             _shortBreakIcon = AddStatusIndicator(originalIcon, ShortBreakColor);
             _longBreakIcon = AddStatusIndicator(originalIcon, LongBreakColor);
+            _overtimeIcon = AddStatusIndicator(originalIcon, OvertimeColor);
             // For idle, just use the original tomato icon without any indicator
             _idleIcon = (DrawingIcon)originalIcon.Clone();
             originalIcon.Dispose();
@@ -105,6 +109,7 @@ public sealed class SystemTrayService : ISystemTrayService
             _focusIcon = CreateSimpleIcon(FocusColor);
             _shortBreakIcon = CreateSimpleIcon(ShortBreakColor);
             _longBreakIcon = CreateSimpleIcon(LongBreakColor);
+            _overtimeIcon = CreateSimpleIcon(OvertimeColor);
             _idleIcon = CreateSimpleIcon(IdleColor);
         }
     }
@@ -180,6 +185,17 @@ public sealed class SystemTrayService : ISystemTrayService
 
         menu.Items.Add(new ToolStripSeparator());
 
+        // Done
+        var doneItem = new ToolStripMenuItem("Done");
+        doneItem.Click += (_, _) => _mainWindow?.Dispatcher.Invoke(() =>
+        {
+            if (_timerViewModel?.MarkDoneCommand.CanExecute(null) == true)
+            {
+                _timerViewModel.MarkDoneCommand.Execute(null);
+            }
+        });
+        menu.Items.Add(doneItem);
+
         // Restart
         var restartItem = new ToolStripMenuItem("Restart");
         restartItem.Click += (_, _) => _mainWindow?.Dispatcher.Invoke(() =>
@@ -198,6 +214,24 @@ public sealed class SystemTrayService : ISystemTrayService
         AddDurationMenuItem(menu, "15 minutes", "15");
         AddDurationMenuItem(menu, "10 minutes", "10");
         AddDurationMenuItem(menu, "5 minutes", "5");
+
+        var customItem = new ToolStripMenuItem("Custom...");
+        customItem.Click += (_, _) => _mainWindow?.Dispatcher.Invoke(() =>
+        {
+            _timerViewModel?.StartFocusCustomCommand.Execute(null);
+        });
+        menu.Items.Add(customItem);
+
+        // Overtime: new focus sessions keep running past their Estimate
+        var overtimeItem = new ToolStripMenuItem("Overtime") { CheckOnClick = true };
+        overtimeItem.Click += (_, _) => _mainWindow?.Dispatcher.Invoke(() =>
+        {
+            if (_timerViewModel != null)
+            {
+                _timerViewModel.IsOvertimeEnabled = overtimeItem.Checked;
+            }
+        });
+        menu.Items.Add(overtimeItem);
 
         menu.Items.Add(new ToolStripSeparator());
 
@@ -246,7 +280,9 @@ public sealed class SystemTrayService : ISystemTrayService
         menu.Opening += (_, _) =>
         {
             addTodoItem.Enabled = _timerViewModel?.ShowTodoInputCommand.CanExecute(null) == true;
+            doneItem.Enabled = _timerViewModel?.MarkDoneCommand.CanExecute(null) == true;
             restartItem.Enabled = _timerViewModel?.RestartCommand.CanExecute(null) == true;
+            overtimeItem.Checked = _timerViewModel?.IsOvertimeEnabled == true;
         };
 
         return menu;
@@ -287,7 +323,7 @@ public sealed class SystemTrayService : ISystemTrayService
 
     private void OnSessionStateChanged(object? sender, SessionStateChangedEventArgs e)
     {
-        UpdateIcon(e.Session.Type, e.NewStatus);
+        UpdateIcon(e.Session, e.NewStatus);
         UpdateTooltip(e.Session, e.NewStatus);
     }
 
@@ -297,6 +333,7 @@ public sealed class SystemTrayService : ISystemTrayService
             return;
 
         var session = _sessionManager.CurrentSession;
+        UpdateIcon(session, session.Status);
         UpdateTooltip(session, session.Status);
     }
 
@@ -310,11 +347,11 @@ public sealed class SystemTrayService : ISystemTrayService
             return;
         }
 
-        UpdateIcon(session.Type, session.Status);
+        UpdateIcon(session, session.Status);
         UpdateTooltip(session, session.Status);
     }
 
-    private void UpdateIcon(SessionType sessionType, SessionStatus status)
+    private void UpdateIcon(Session session, SessionStatus status)
     {
         // Show idle icon when not running or paused
         if (status != SessionStatus.Running && status != SessionStatus.Paused)
@@ -323,8 +360,14 @@ public sealed class SystemTrayService : ISystemTrayService
             return;
         }
 
+        if (session.IsInOvertime)
+        {
+            SetIcon(_overtimeIcon);
+            return;
+        }
+
         // Show session type color when active
-        var icon = sessionType switch
+        var icon = session.Type switch
         {
             SessionType.Focus => _focusIcon,
             SessionType.ShortBreak => _shortBreakIcon,
@@ -337,7 +380,7 @@ public sealed class SystemTrayService : ISystemTrayService
 
     private void SetIcon(DrawingIcon? icon)
     {
-        if (_notifyIcon != null && icon != null)
+        if (_notifyIcon != null && icon != null && !ReferenceEquals(_notifyIcon.Icon, icon))
         {
             _notifyIcon.Icon = icon;
         }
@@ -353,13 +396,14 @@ public sealed class SystemTrayService : ISystemTrayService
 
         var sessionLabel = session.Type switch
         {
+            SessionType.Focus when session.IsInOvertime => "Overtime",
             SessionType.Focus => "Focus",
             SessionType.ShortBreak => "Short Break",
             SessionType.LongBreak => "Long Break",
             _ => "Session"
         };
 
-        var timeText = FormatTimeRemaining(session.TimeRemaining);
+        var timeText = TimerDisplay.Format(session.TimeRemaining);
         var pausedText = status == SessionStatus.Paused ? " (Paused)" : "";
 
         // NotifyIcon.Text has 64-char limit
@@ -378,15 +422,6 @@ public sealed class SystemTrayService : ISystemTrayService
         {
             _notifyIcon.Text = text;
         }
-    }
-
-    private static string FormatTimeRemaining(TimeSpan remaining)
-    {
-        if (remaining.TotalHours >= 1)
-        {
-            return $"{(int)remaining.TotalHours}:{remaining.Minutes:D2}:{remaining.Seconds:D2}";
-        }
-        return $"{remaining.Minutes:D2}:{remaining.Seconds:D2}";
     }
 
     public void Dispose()
@@ -411,6 +446,7 @@ public sealed class SystemTrayService : ISystemTrayService
         _focusIcon?.Dispose();
         _shortBreakIcon?.Dispose();
         _longBreakIcon?.Dispose();
+        _overtimeIcon?.Dispose();
         _idleIcon?.Dispose();
 
         _disposed = true;

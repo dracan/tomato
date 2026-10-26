@@ -17,6 +17,11 @@ public sealed class SlackService : ISlackService
     private static readonly string[] RequiredScopes = ["users.profile:write", "dnd:write"];
     private static readonly TimeSpan ShutdownWaitTimeout = TimeSpan.FromSeconds(3);
 
+    // In Overtime there's no known end, so the status is set for a short step and
+    // extended a minute before it runs out. A crash leaves it on for at most one step.
+    private static readonly TimeSpan OvertimeStep = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan OvertimeExtendBefore = TimeSpan.FromMinutes(1);
+
     private readonly ISlackConfigurationService _configService;
     private readonly ISessionManager _sessionManager;
     private readonly HttpClient _httpClient;
@@ -28,6 +33,9 @@ public sealed class SlackService : ISlackService
     private string? _token;
     private bool _isEnabled = true;
     private bool _disposed;
+
+    // How far into Overtime the focus status next needs extending
+    private TimeSpan? _nextOvertimeExtension;
 
     public SlackService(
         ISlackConfigurationService configService,
@@ -52,6 +60,7 @@ public sealed class SlackService : ISlackService
 
         // Subscribe to session state changes
         _sessionManager.SessionStateChanged += OnSessionStateChanged;
+        _sessionManager.TimerTick += OnTimerTick;
     }
 
     public bool IsConfigured => !string.IsNullOrEmpty(_token);
@@ -158,6 +167,7 @@ public sealed class SlackService : ISlackService
         }
 
         _sessionManager.SessionStateChanged -= OnSessionStateChanged;
+        _sessionManager.TimerTick -= OnTimerTick;
 
         // Let a pending update (e.g. clearing the status on exit) finish first
         Task pending;
@@ -179,7 +189,13 @@ public sealed class SlackService : ISlackService
             return;
         }
 
-        if (e.NewStatus == SessionStatus.Running)
+        _nextOvertimeExtension = null;
+
+        if (e.NewStatus == SessionStatus.Running && e.Session.IsInOvertime)
+        {
+            ExtendForOvertime(-e.Session.TimeRemaining);
+        }
+        else if (e.NewStatus == SessionStatus.Running)
         {
             var remaining = e.Session.TimeRemaining;
             QueueUpdate(() => SetFocusStatusAsync(remaining));
@@ -188,6 +204,27 @@ public sealed class SlackService : ISlackService
         {
             QueueUpdate(ClearStatusAsync);
         }
+    }
+
+    private void OnTimerTick(object? sender, TimerTickEventArgs e)
+    {
+        if (_nextOvertimeExtension is not { } next ||
+            _sessionManager.CurrentSession is not { IsInOvertime: true, Status: SessionStatus.Running })
+        {
+            return;
+        }
+
+        var overtime = -e.Remaining;
+        if (overtime >= next)
+        {
+            ExtendForOvertime(overtime);
+        }
+    }
+
+    private void ExtendForOvertime(TimeSpan overtimeSoFar)
+    {
+        _nextOvertimeExtension = overtimeSoFar + OvertimeStep - OvertimeExtendBefore;
+        QueueUpdate(() => SetFocusStatusAsync(OvertimeStep));
     }
 
     /// <summary>

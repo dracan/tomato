@@ -4,7 +4,7 @@ using System.Windows.Data;
 namespace Tomato.Converters;
 
 /// <summary>
-/// Converts TimeSpan to a display string in mm:ss format.
+/// Converts TimeSpan to a display string in mm:ss format, with a minus sign in Overtime.
 /// </summary>
 public class TimeSpanToStringConverter : IValueConverter
 {
@@ -12,11 +12,7 @@ public class TimeSpanToStringConverter : IValueConverter
     {
         if (value is TimeSpan timeSpan)
         {
-            if (timeSpan.TotalHours >= 1)
-            {
-                return timeSpan.ToString(@"h\:mm\:ss", culture);
-            }
-            return timeSpan.ToString(@"mm\:ss", culture);
+            return TimerDisplay.Format(timeSpan);
         }
         return "00:00";
     }

@@ -20,7 +20,7 @@ public class TimerViewModelTodoTests
         _sessionManager.TodayStatistics.Returns(DailyStatistics.Create(DateOnly.FromDateTime(DateTime.Now)));
 
         _dialogService = Substitute.For<IDialogService>();
-        _dialogService.ShowGoalDialogAsync().Returns(new GoalDialogResult(true, null));
+        _dialogService.ShowGoalDialogAsync(Arg.Any<int>(), Arg.Any<bool>()).Returns(new GoalDialogResult(true, null));
 
         _statisticsReportService = Substitute.For<IStatisticsReportService>();
 
@@ -257,7 +257,7 @@ public class TimerViewModelTodoTests
         _sut.AddTodoCommand.Execute(null);
         _sut.CapturedTodos.Should().HaveCount(1);
 
-        _dialogService.ShowGoalDialogAsync().Returns(new GoalDialogResult(true, "New goal"));
+        _dialogService.ShowGoalDialogAsync(Arg.Any<int>(), Arg.Any<bool>()).Returns(new GoalDialogResult(true, "New goal"));
 
         // Act
         await _sut.StartFocusCommand.ExecuteAsync(null);
@@ -275,7 +275,7 @@ public class TimerViewModelTodoTests
         _sut.AddTodoCommand.Execute(null);
         _sut.CapturedTodos.Should().HaveCount(1);
 
-        _dialogService.ShowGoalDialogAsync().Returns(new GoalDialogResult(true, "New goal"));
+        _dialogService.ShowGoalDialogAsync(Arg.Any<int>(), Arg.Any<bool>()).Returns(new GoalDialogResult(true, "New goal"));
 
         // Act
         await _sut.StartFocusWithDurationCommand.ExecuteAsync("15");
@@ -293,7 +293,7 @@ public class TimerViewModelTodoTests
         _sut.AddTodoCommand.Execute(null);
         _sut.CapturedTodos.Should().HaveCount(1);
 
-        _dialogService.ShowGoalDialogAsync().Returns(new GoalDialogResult(false, null));
+        _dialogService.ShowGoalDialogAsync(Arg.Any<int>(), Arg.Any<bool>()).Returns(new GoalDialogResult(false, null));
 
         // Act
         await _sut.StartFocusCommand.ExecuteAsync(null);
@@ -501,7 +501,7 @@ public class TimerViewModelTodoTests
         _sut.NewTodoText = "Todo 2";
         _sut.AddTodoCommand.Execute(null);
 
-        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>())
+        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>(), Arg.Any<string?>())
             .Returns(new ResultsDialogResult(true, "Results", null));
 
         // Simulate focus session completion
@@ -520,7 +520,8 @@ public class TimerViewModelTodoTests
             Arg.Is<IReadOnlyList<TodoItem>?>(todos =>
                 todos != null && todos.Count == 2 &&
                 todos[0].Text == "Todo 1" &&
-                todos[1].Text == "Todo 2"));
+                todos[1].Text == "Todo 2"),
+            Arg.Any<string?>());
     }
 
     [Fact]
@@ -529,7 +530,7 @@ public class TimerViewModelTodoTests
         // Arrange - no todos
         _sut.CapturedTodos.Should().BeEmpty();
 
-        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>())
+        _dialogService.ShowResultsDialogAsync(Arg.Any<string?>(), Arg.Any<IReadOnlyList<TodoItem>?>(), Arg.Any<string?>())
             .Returns(new ResultsDialogResult(true, "Results", null));
 
         // Simulate focus session completion
@@ -545,7 +546,8 @@ public class TimerViewModelTodoTests
         // Assert
         await _dialogService.Received(1).ShowResultsDialogAsync(
             Arg.Any<string?>(),
-            Arg.Is<IReadOnlyList<TodoItem>?>(todos => todos == null));
+            Arg.Is<IReadOnlyList<TodoItem>?>(todos => todos == null),
+            Arg.Any<string?>());
     }
 
     #endregion

@@ -7,15 +7,18 @@ A minimal Windows desktop Pomodoro timer.
 ## Features
 
 - 25-minute focus sessions with short and long breaks
-- 4-session cycles (Focus → Break → Focus → Break → Focus → Break → Focus → Long Break)
-- Custom-length sessions from the right-click or tray menu: 5/10/15/20-minute focus, a 10-minute break, or a 15-minute long break
+- 4-session cycles (Focus → Break → Focus → Break → Focus → Break → Focus → Long Break). Every focus session counts as one, whatever its length
+- Estimates: set how long a focus session should take (1-120 minutes) when you start it - see [Estimates and Overtime](#estimates-and-overtime)
+- Optional Overtime: keep a focus session going past its Estimate until you mark it done
+- Done (✓ button, right-click or tray menu): finish a focus session early, or end its Overtime, and record the time actually spent
+- Custom-length sessions from the right-click or tray menu: 5/10/15/20-minute focus or Custom..., a 10-minute break, or a 15-minute long break
 - Goal setting dialog when starting a focus session
 - Quick-capture todos during focus sessions (right-click menu)
 - Results dialog when a focus session completes (includes captured todos)
 - Session statistics tracking with historical data
 - View Stats report (right-click → View Stats) - generates an HTML report with:
   - Today's stats (sessions, focus time, break time, cycles)
-  - Today's individual sessions with goals and results
+  - Today's individual sessions with goals, results and how the time spent compared with the Estimate
   - All-time totals
   - Daily history with expandable session details
 - Sound notifications on session completion
@@ -41,6 +44,16 @@ A minimal Windows desktop Pomodoro timer.
 
 ![Goal entry](Assets/ReadmeImages/Goal.png)
 ![Feedback entry](Assets/ReadmeImages/Feedback.png)
+
+### Estimates and Overtime
+
+Every focus session starts from the goal dialog, which also asks for an **Estimate**: how many minutes (1-120) you expect the goal to take. It's filled in from whatever you clicked: 25 for Start, the preset for 5/10/15/20 minutes, and for **Custom...** the cursor goes straight to the Estimate so you can type a number.
+
+Click **Done** (the ✓ button, or Done in the right-click or tray menu) when you've finished. The session is recorded with the time you actually spent, not counting pauses, so finishing a 30-minute Estimate in 18 minutes records 18 minutes. Focus time totals in the stats use the time actually spent.
+
+**Overtime** is off by default. Turn it on with the Overtime item in the right-click or tray menu (it's remembered across restarts, and takes effect from the next focus session). With Overtime on, when the Estimate runs out the completion sound plays once and the timer keeps counting below zero (`-04:12`), with the window and tray icon turning amber, until you click Done. With it off, the session ends when the Estimate runs out, as before.
+
+When a focus session ends, the results dialog and the stats report show how it went, for example "Estimated 15m, took 18m (3m over)". Sessions recorded before Estimates existed show no comparison.
 
 ### Quick-capture todos
 
@@ -79,6 +92,7 @@ Tomato can automatically update your Slack status and enable Do Not Disturb when
 ### Behavior
 
 - **Focus session starts or resumes**: Status changes to 🍅 "Focus time" and DND is enabled, both set to expire when the session would end
+- **Overtime**: there's no known end, so the status and DND are set for 10 minutes at a time and extended before they run out, until you click Done
 - **Focus session is paused, ends, or the app exits**: Status is cleared and DND is disabled
 - **Breaks**: No changes to Slack status
 
@@ -88,7 +102,7 @@ Your token is stored encrypted using Windows DPAPI at `%LOCALAPPDATA%\Tomato\sla
 
 Tomato keeps its data in `%LOCALAPPDATA%\Tomato`:
 
-- `state.json`: the current session, cycle progress and all statistics history. A session running when the app closes is saved as paused, so you can resume it next time.
+- `state.json`: the current session, cycle progress, all statistics history and whether Overtime is on. A session running when the app closes is saved as paused, so you can resume it next time (a session in Overtime comes back still in Overtime).
 - `error.log`: unexpected errors, and Slack updates that were rejected. It starts a new file once it passes 1 MB.
 - `slack.json` / `luxafor.json`: integration settings, encrypted with Windows DPAPI.
 

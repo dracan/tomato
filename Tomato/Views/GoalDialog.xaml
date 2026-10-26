@@ -8,7 +8,7 @@
         d:DataContext="{d:DesignInstance Type=vm:GoalDialogViewModel}"
         Title="New Focus Session"
         Width="350"
-        Height="200"
+        Height="240"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="{StaticResource BackgroundBrush}"
@@ -27,6 +27,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
@@ -52,8 +53,35 @@
                      VerticalScrollBarVisibility="Auto"
                      x:Name="GoalTextBox"/>
 
-            <!-- Buttons -->
+            <!-- Estimate -->
             <StackPanel Grid.Row="2"
+                        Orientation="Horizontal"
+                        Margin="0,12,0,0">
+                <TextBlock Text="Estimate"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           FontSize="14"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0"/>
+                <TextBox Text="{Binding Estimate, UpdateSourceTrigger=PropertyChanged}"
+                         Background="{StaticResource SurfaceBrush}"
+                         Foreground="{StaticResource TextPrimaryBrush}"
+                         BorderBrush="{StaticResource TextSecondaryBrush}"
+                         BorderThickness="1"
+                         Padding="6,4"
+                         FontSize="14"
+                         Width="56"
+                         MaxLength="3"
+                         HorizontalContentAlignment="Right"
+                         x:Name="EstimateTextBox"/>
+                <TextBlock Text="minutes (1-120)"
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           FontSize="12"
+                           VerticalAlignment="Center"
+                           Margin="8,0,0,0"/>
+            </StackPanel>
+
+            <!-- Buttons -->
+            <StackPanel Grid.Row="3"
                         Orientation="Horizontal"
                         HorizontalAlignment="Right"
                         Margin="0,16,0,0">

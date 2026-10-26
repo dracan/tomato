@@ -7,7 +7,8 @@ namespace Tomato.Services;
 /// </summary>
 /// <param name="Confirmed">Whether the user confirmed (true) or cancelled (false).</param>
 /// <param name="Goal">The goal entered by the user, if confirmed.</param>
-public record GoalDialogResult(bool Confirmed, string? Goal);
+/// <param name="EstimateMinutes">The Estimate entered by the user, in minutes.</param>
+public record GoalDialogResult(bool Confirmed, string? Goal, int EstimateMinutes = 25);
 
 /// <summary>
 /// Result of a results dialog interaction.
@@ -32,16 +33,19 @@ public interface IDialogService
     /// <summary>
     /// Shows the goal entry dialog for a new focus session.
     /// </summary>
-    /// <returns>The dialog result containing confirmation status and goal text.</returns>
-    Task<GoalDialogResult> ShowGoalDialogAsync();
+    /// <param name="estimateMinutes">The Estimate to fill in, in minutes.</param>
+    /// <param name="focusEstimate">Whether to put the cursor in the Estimate field instead of the goal.</param>
+    /// <returns>The dialog result containing confirmation status, goal text and Estimate.</returns>
+    Task<GoalDialogResult> ShowGoalDialogAsync(int estimateMinutes = 25, bool focusEstimate = false);
 
     /// <summary>
     /// Shows the results dialog after a focus session completes.
     /// </summary>
     /// <param name="goal">The goal that was set for the session, if any.</param>
     /// <param name="capturedTodos">Optional list of todos captured during the session.</param>
+    /// <param name="estimateSummary">How the Time Spent compared with the Estimate, if known.</param>
     /// <returns>The dialog result containing confirmation status and results text.</returns>
-    Task<ResultsDialogResult> ShowResultsDialogAsync(string? goal, IReadOnlyList<TodoItem>? capturedTodos = null);
+    Task<ResultsDialogResult> ShowResultsDialogAsync(string? goal, IReadOnlyList<TodoItem>? capturedTodos = null, string? estimateSummary = null);
 
     /// <summary>
     /// Shows a dialog displaying captured todos (without feedback options).

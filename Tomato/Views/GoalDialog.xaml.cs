@@ -19,13 +19,24 @@ public partial class GoalDialog : Window
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         // Set the window reference on the ViewModel
-        if (DataContext is GoalDialogViewModel vm)
+        if (DataContext is not GoalDialogViewModel vm)
         {
-            vm.Window = this;
+            GoalTextBox.Focus();
+            return;
         }
 
-        // Focus the text box
-        GoalTextBox.Focus();
+        vm.Window = this;
+
+        // Focus the goal, or the Estimate when it was asked for (Custom...)
+        if (vm.FocusEstimate)
+        {
+            EstimateTextBox.Focus();
+            EstimateTextBox.SelectAll();
+        }
+        else
+        {
+            GoalTextBox.Focus();
+        }
     }
 
     private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
